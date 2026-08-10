@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "otghcloud/aurora-access-core",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Aurora Access Control system core package.",
     "keywords": [
         "laravel",
         "framework"
