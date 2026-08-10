@@ -92,5 +92,5 @@
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
-    "replace": []
+    "replace": {}
 }
