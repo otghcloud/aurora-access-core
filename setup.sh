@@ -215,6 +215,10 @@ set_env_value() {
   local key="$2"
   local value="$3"
 
+  if [[ ! -f "$env_file" ]]; then
+    fail "Environment file not found: $env_file"
+  fi
+
   php -r '
     $file = $argv[1];
     $key = $argv[2];
@@ -396,6 +400,7 @@ log_step "Creating Laravel host app in $TARGET_DIR"
 composer create-project laravel/laravel "$TARGET_DIR"
 
 cd "$TARGET_DIR"
+TARGET_DIR="$(pwd)"
 
 adapter_package_constraint="^1.0"
 core_package_constraint="$CORE_VERSION"
@@ -443,7 +448,7 @@ if [[ "$WITH_ADAPTERS" == "true" ]]; then
     --with-all-dependencies
 fi
 
-ENV_FILE="$TARGET_DIR/.env"
+ENV_FILE=".env"
 
 set_env_value "$ENV_FILE" APP_NAME "\"$app_name\""
 set_env_value "$ENV_FILE" APP_URL "$app_url"
@@ -451,8 +456,8 @@ set_env_value "$ENV_FILE" DB_CONNECTION "$db_connection"
 set_env_value "$ENV_FILE" DB_DATABASE "$db_name"
 
 if [[ "$db_connection" == "sqlite" ]]; then
-  mkdir -p "$(dirname "$TARGET_DIR/$db_name")"
-  touch "$TARGET_DIR/$db_name"
+  mkdir -p "$(dirname "$db_name")"
+  touch "$db_name"
 else
   set_env_value "$ENV_FILE" DB_HOST "$db_host"
   set_env_value "$ENV_FILE" DB_PORT "$db_port"
