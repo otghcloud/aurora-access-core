@@ -243,6 +243,30 @@ set_env_value() {
   ' "$env_file" "$key" "$value"
 }
 
+quote_env_value() {
+  local value="$1"
+  value="${value//$'\r'/}"
+  value="${value//$'\n'/}"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  printf '"%s"' "$value"
+}
+
+nullable_env_value() {
+  local value="$1"
+  if [[ -z "$value" ]]; then
+    printf '""'
+    return
+  fi
+
+  if [[ "$value" =~ ^[Nn][Uu][Ll][Ll]$ ]]; then
+    printf 'null'
+    return
+  fi
+
+  quote_env_value "$value"
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --target)
@@ -450,31 +474,31 @@ fi
 
 ENV_FILE=".env"
 
-set_env_value "$ENV_FILE" APP_NAME "\"$app_name\""
-set_env_value "$ENV_FILE" APP_URL "$app_url"
-set_env_value "$ENV_FILE" DB_CONNECTION "$db_connection"
-set_env_value "$ENV_FILE" DB_DATABASE "$db_name"
+set_env_value "$ENV_FILE" APP_NAME "$(quote_env_value "$app_name")"
+set_env_value "$ENV_FILE" APP_URL "$(quote_env_value "$app_url")"
+set_env_value "$ENV_FILE" DB_CONNECTION "$(quote_env_value "$db_connection")"
+set_env_value "$ENV_FILE" DB_DATABASE "$(quote_env_value "$db_name")"
 
 if [[ "$db_connection" == "sqlite" ]]; then
   mkdir -p "$(dirname "$db_name")"
   touch "$db_name"
 else
-  set_env_value "$ENV_FILE" DB_HOST "$db_host"
-  set_env_value "$ENV_FILE" DB_PORT "$db_port"
-  set_env_value "$ENV_FILE" DB_USERNAME "$db_username"
-  set_env_value "$ENV_FILE" DB_PASSWORD "$db_password"
+  set_env_value "$ENV_FILE" DB_HOST "$(quote_env_value "$db_host")"
+  set_env_value "$ENV_FILE" DB_PORT "$(quote_env_value "$db_port")"
+  set_env_value "$ENV_FILE" DB_USERNAME "$(quote_env_value "$db_username")"
+  set_env_value "$ENV_FILE" DB_PASSWORD "$(quote_env_value "$db_password")"
 fi
 
-set_env_value "$ENV_FILE" REDIS_HOST "$redis_host"
-set_env_value "$ENV_FILE" REDIS_PORT "$redis_port"
-set_env_value "$ENV_FILE" REDIS_PASSWORD "$redis_password"
-set_env_value "$ENV_FILE" MQTT_HOST "$mqtt_host"
-set_env_value "$ENV_FILE" MQTT_PORT "$mqtt_port"
-set_env_value "$ENV_FILE" MQTT_CLIENT_ID "$mqtt_client_id"
-set_env_value "$ENV_FILE" MQTT_MONITOR_CONNECTION "$mqtt_monitor_connection"
-set_env_value "$ENV_FILE" MQTT_MONITOR_CLIENT_ID "$mqtt_monitor_client_id"
-set_env_value "$ENV_FILE" MQTT_AUTH_USERNAME "$mqtt_username"
-set_env_value "$ENV_FILE" MQTT_AUTH_PASSWORD "$mqtt_password"
+set_env_value "$ENV_FILE" REDIS_HOST "$(quote_env_value "$redis_host")"
+set_env_value "$ENV_FILE" REDIS_PORT "$(quote_env_value "$redis_port")"
+set_env_value "$ENV_FILE" REDIS_PASSWORD "$(nullable_env_value "$redis_password")"
+set_env_value "$ENV_FILE" MQTT_HOST "$(quote_env_value "$mqtt_host")"
+set_env_value "$ENV_FILE" MQTT_PORT "$(quote_env_value "$mqtt_port")"
+set_env_value "$ENV_FILE" MQTT_CLIENT_ID "$(quote_env_value "$mqtt_client_id")"
+set_env_value "$ENV_FILE" MQTT_MONITOR_CONNECTION "$(quote_env_value "$mqtt_monitor_connection")"
+set_env_value "$ENV_FILE" MQTT_MONITOR_CLIENT_ID "$(quote_env_value "$mqtt_monitor_client_id")"
+set_env_value "$ENV_FILE" MQTT_AUTH_USERNAME "$(nullable_env_value "$mqtt_username")"
+set_env_value "$ENV_FILE" MQTT_AUTH_PASSWORD "$(nullable_env_value "$mqtt_password")"
 set_env_value "$ENV_FILE" MQTT_ENABLE_LOGGING "false"
 set_env_value "$ENV_FILE" MQTT_AUTO_RECONNECT_ENABLED "true"
 set_env_value "$ENV_FILE" MQTT_KEEP_ALIVE_INTERVAL "10"
