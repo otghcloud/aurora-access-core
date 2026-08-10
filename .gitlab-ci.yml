@@ -1,0 +1,300 @@
+image: lorisleiva/laravel-docker:8.4
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH
+      when: always
+    - when: never
+
+stages:
+  - prepare
+  - quality
+  - release
+  - split
+
+default:
+  interruptible: true
+  retry:
+    max: 1
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+variables:
+  GIT_DEPTH: "0"
+  COMPOSER_CACHE_DIR: "$CI_PROJECT_DIR/.composer-cache"
+  npm_config_cache: "$CI_PROJECT_DIR/.npm-cache"
+  RELEASE_BUMP: "patch"
+  RELEASE_TAG_OVERRIDE: ""
+  FORCE_PACKAGE_SPLIT: "0"
+  RELEASE_GIT_USER_NAME: "otgh-ci-bot"
+  RELEASE_GIT_USER_EMAIL: "ci-bot@otgh.cloud"
+
+.cache_php_push: &cache_php_push
+  key:
+    files:
+      - composer.lock
+    prefix: php-8.4
+  paths:
+    - vendor/
+    - .composer-cache/
+  policy: pull-push
+
+.cache_php_pull: &cache_php_pull
+  key:
+    files:
+      - composer.lock
+    prefix: php-8.4
+  paths:
+    - vendor/
+    - .composer-cache/
+  policy: pull
+
+.cache_node_push: &cache_node_push
+  key:
+    files:
+      - package-lock.json
+    prefix: node-20
+  paths:
+    - node_modules/
+    - .npm-cache/
+  policy: pull-push
+
+.cache_node_pull: &cache_node_pull
+  key:
+    files:
+      - package-lock.json
+    prefix: node-20
+  paths:
+    - node_modules/
+    - .npm-cache/
+  policy: pull
+
+deps:php:
+  stage: prepare
+  cache:
+    - *cache_php_push
+  before_script:
+    - install-php-extensions sockets
+    - echo 'memory_limit = 1024M' >> /usr/local/etc/php/conf.d/docker-php-memory-limit.ini
+  script:
+    - composer install --prefer-dist --no-ansi --no-interaction --no-progress --no-scripts
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - vendor/
+
+deps:node:
+  stage: prepare
+  cache:
+    - *cache_node_push
+  script:
+    - npm ci --no-audit --no-fund
+    - cp .env.testing .env
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - node_modules/
+
+lint:php:
+  stage: quality
+  needs:
+    - job: deps:php
+      artifacts: true
+  cache:
+    - *cache_php_pull
+  before_script:
+    - install-php-extensions sockets
+    - echo 'memory_limit = 1024M' >> /usr/local/etc/php/conf.d/docker-php-memory-limit.ini
+  script:
+    - ./vendor/bin/pint --test
+
+#lint:commits:
+#  stage: quality
+#  script:
+#    - |
+#      if [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
+#        FROM_REF="$CI_MERGE_REQUEST_DIFF_BASE_SHA"
+#      else
+#        FROM_REF="$CI_COMMIT_BEFORE_SHA"
+#      fi
+#
+#      if [ -z "$FROM_REF" ] || [ "$FROM_REF" = "0000000000000000000000000000000000000000" ]; then
+#        FROM_REF=$(git rev-list --max-parents=0 HEAD | tail -n1)
+#      fi
+#
+#      if [ -z "$FROM_REF" ]; then
+#        echo "Unable to determine commit range for linting."
+#        exit 1
+#      fi
+#
+#      COMMITS=$(git rev-list --no-merges "$FROM_REF..$CI_COMMIT_SHA")
+#
+#      if [ -z "$COMMITS" ]; then
+#        COMMITS="$CI_COMMIT_SHA"
+#      fi
+#
+#      for commit_sha in $COMMITS; do
+#        header=$(git show -s --format=%s "$commit_sha")
+#        ./scripts/validate-conventional-commit.sh "$header"
+#      done
+
+build:frontend:
+  stage: quality
+  needs:
+    - job: deps:node
+      artifacts: true
+  cache:
+    - *cache_node_pull
+  script:
+    - cp .env.testing .env
+    - npm run build
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - public/build/
+
+test:pest:
+  stage: quality
+  needs:
+    - job: deps:php
+      artifacts: true
+    - job: build:frontend
+      artifacts: true
+  cache:
+    - *cache_php_pull
+  before_script:
+    - install-php-extensions sockets
+    - echo 'memory_limit = 1024M' >> /usr/local/etc/php/conf.d/docker-php-memory-limit.ini
+  script:
+    - cp .env.testing .env
+    - php artisan key:generate --force
+    - php artisan migrate --force
+    - ./vendor/bin/pest tests/Feature tests/Unit --log-junit junit.xml
+  artifacts:
+    when: always
+    expire_in: 1 week
+    reports:
+      junit: junit.xml
+    paths:
+      - junit.xml
+      - storage/logs/
+
+release:monorepo:
+  stage: release
+  needs:
+    - job: deps:php
+      artifacts: true
+    - job: lint:php
+#    - job: lint:commits
+    - job: test:pest
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
+  script:
+    - |
+      if [ -z "$CI_BOT_TOKEN" ]; then
+        echo "CI_BOT_TOKEN is required for release."
+        exit 1
+      fi
+      echo "Release context: project=$CI_PROJECT_PATH branch=$CI_COMMIT_BRANCH sha=$CI_COMMIT_SHA pipeline=$CI_PIPELINE_ID"
+
+      git config user.name "$RELEASE_GIT_USER_NAME"
+      git config user.email "$RELEASE_GIT_USER_EMAIL"
+      git remote set-url origin "https://oauth2:${CI_BOT_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+
+      # GitLab checks out a detached HEAD by default; attach to branch for release workers.
+      git checkout -B "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHA"
+
+      git remote -v | sed -E 's#oauth2:[^@]+@#oauth2:[MASKED]@#g'
+      git status --short --branch
+      echo "Tags at HEAD before release:" && git tag --points-at HEAD || true
+      echo "Recent remote tags before release:" && git ls-remote --tags --sort='v:refname' origin | tail -n 20 || true
+
+      git fetch --tags --force
+      if [ -n "$RELEASE_TAG_OVERRIDE" ]; then
+        if ! echo "$RELEASE_TAG_OVERRIDE" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+          echo "RELEASE_TAG_OVERRIDE must be a full semver tag like v1.0.0"
+          exit 1
+        fi
+
+        if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG_OVERRIDE" >/dev/null 2>&1; then
+          EXISTING_TAG_COMMIT="$(git rev-list -n 1 "$RELEASE_TAG_OVERRIDE" 2>/dev/null || true)"
+
+          if [ "$EXISTING_TAG_COMMIT" != "$CI_COMMIT_SHA" ]; then
+            echo "Tag $RELEASE_TAG_OVERRIDE already exists on a different commit."
+            exit 1
+          fi
+
+          echo "Bootstrap tag already exists at HEAD: $RELEASE_TAG_OVERRIDE"
+        else
+          git tag "$RELEASE_TAG_OVERRIDE" "$CI_COMMIT_SHA"
+          git push origin "$RELEASE_TAG_OVERRIDE"
+        fi
+      else
+        vendor/bin/monorepo-builder release "$RELEASE_BUMP" --config dev/monorepo-builder.php -vv
+
+        # Ensure newly-created local tags are pushed (monorepo-builder may create tags after its push worker).
+        git push origin --tags
+      fi
+
+      echo "Tags at HEAD after release:" && git tag --points-at HEAD || true
+      echo "Recent local tags after release:" && git tag --sort='v:refname' | tail -n 20 || true
+      echo "Recent remote tags after release:" && git ls-remote --tags --sort='v:refname' origin | tail -n 20 || true
+
+      TAGS_AT_HEAD="$(git tag --points-at HEAD)"
+      if [ -z "$TAGS_AT_HEAD" ]; then
+        echo "No tags found at HEAD after release step."
+      else
+        echo "Verifying tags at HEAD on origin..."
+        while IFS= read -r tag; do
+          [ -z "$tag" ] && continue
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "origin has tag: $tag"
+          else
+            echo "origin missing tag: $tag"
+            exit 1
+          fi
+        done <<< "$TAGS_AT_HEAD"
+
+        echo "Creating GitLab releases for tags at HEAD..."
+        while IFS= read -r tag; do
+          [ -z "$tag" ] && continue
+
+          PREVIOUS_TAG="$(sh .gitlab/scripts/resolve-previous-release-tag.sh "$tag")"
+          NOTES_FILE="$(mktemp)"
+
+          sh .gitlab/scripts/build-release-notes.sh "$NOTES_FILE" "$tag" "$PREVIOUS_TAG" "$CI_PROJECT_PATH"
+          sh .gitlab/scripts/create-gitlab-release.sh "$CI_PROJECT_ID" "$tag" "$NOTES_FILE"
+
+          rm -f "$NOTES_FILE"
+        done <<< "$TAGS_AT_HEAD"
+      fi
+
+prepare:split-matrix:
+  stage: release
+  before_script:
+    - apk add --no-cache jq
+  script:
+    - |
+      PACKAGE_LIST=$(bash .gitlab/scripts/get-package-list.sh || echo "[]")
+      echo "PACKAGE_LIST=$PACKAGE_LIST" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
+
+split:trigger:
+  stage: split
+  trigger:
+    include:
+      - local: .gitlab/workflows/.gitlab-ci-split-packages.yml
+    forward:
+      pipeline_variables: true
+  needs:
+    - job: prepare:split-matrix
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"

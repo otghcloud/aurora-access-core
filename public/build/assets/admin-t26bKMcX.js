@@ -1,0 +1,1 @@
+import{t as e}from"./jquery-migrate.module-iwo_J6_Z.js";window.$=e,window.jQuery=e;

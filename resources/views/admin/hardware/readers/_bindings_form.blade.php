@@ -1,0 +1,299 @@
+@php
+    $inputRows = old('inputs', $inputBindings ?? []);
+    $outputRows = old('outputs', $outputBindings ?? []);
+
+    $adapterOptions = $adapterTypeOptions ?? [];
+@endphp
+
+<div class="row g-3">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Input Bindings</h6>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="add-input-binding">Add Input</button>
+        </div>
+        <div class="table-responsive border rounded">
+            <table class="table table-sm mb-0 align-middle" id="inputs-table">
+                <thead>
+                    <tr>
+                        <th>Enabled</th>
+                        <th>Source</th>
+                        <th>Adapter</th>
+                        <th>Action</th>
+                        <th>Channel/Tag</th>
+                        <th>Signal Reversed</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($inputRows as $index => $row)
+                        <tr>
+                            <td>
+                                <input type="hidden" name="inputs[{{ $index }}][enabled]" value="0">
+                                <input class="form-check-input" type="checkbox" name="inputs[{{ $index }}][enabled]" value="1" @checked((bool) ($row['enabled'] ?? true))>
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm" name="inputs[{{ $index }}][source_id]">
+                                    <option value="">None</option>
+                                    @foreach ($accessSources as $source)
+                                        <option value="{{ $source->id }}" @selected((string) ($row['source_id'] ?? '') === (string) $source->id)>{{ $source->name }} ({{ strtoupper($source->type) }})</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm" name="inputs[{{ $index }}][adapter_type]">
+                                    <option value=""></option>
+                                    @foreach ($adapterOptions as $adapter)
+                                        <option value="{{ $adapter['value'] }}" @selected((string) ($row['adapter_type'] ?? '') === $adapter['value'])>{{ $adapter['label'] }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td>
+                                @php
+                                    $selectedInputAction = \App\Enums\AccessControl\AccessBindingActionKey::fromStored($row['action_key'] ?? null)?->value;
+                                @endphp
+                                <select class="form-select form-select-sm" name="inputs[{{ $index }}][action_key]">
+                                    <option value=""></option>
+                                    @foreach (($inputActionOptions ?? []) as $option)
+                                        <option value="{{ $option['value'] }}" @selected($selectedInputAction === $option['value'])>{{ $option['key'] }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" class="form-control form-control-sm" name="inputs[{{ $index }}][channel]" value="{{ $row['channel'] ?? '' }}">
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm" name="inputs[{{ $index }}][signal_reversed]">
+                                    <option value="0" @selected((string) ($row['signal_reversed'] ?? false ? '1' : '0') === '0')>No</option>
+                                    <option value="1" @selected((string) ($row['signal_reversed'] ?? false ? '1' : '0') === '1')>Yes</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="hidden" name="inputs[{{ $index }}][config_json]" value="{{ $row['config_json'] ?? '{}' }}">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-binding-row">Remove</button>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-12 mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Output Bindings</h6>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="add-output-binding">Add Output</button>
+        </div>
+        <div class="table-responsive border rounded">
+            <table class="table table-sm mb-0 align-middle" id="outputs-table">
+                <thead>
+                    <tr>
+                        <th>Enabled</th>
+                        <th>Source</th>
+                        <th>Adapter</th>
+                        <th>Action</th>
+                        <th>Channel/Tag</th>
+                        <th>Signal Reversed</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($outputRows as $index => $row)
+                        <tr>
+                            <td>
+                                <input type="hidden" name="outputs[{{ $index }}][enabled]" value="0">
+                                <input class="form-check-input" type="checkbox" name="outputs[{{ $index }}][enabled]" value="1" @checked((bool) ($row['enabled'] ?? true))>
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm" name="outputs[{{ $index }}][source_id]">
+                                    <option value="">None</option>
+                                    @foreach ($accessSources as $source)
+                                        <option value="{{ $source->id }}" @selected((string) ($row['source_id'] ?? '') === (string) $source->id)>{{ $source->name }} ({{ strtoupper($source->type) }})</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm" name="outputs[{{ $index }}][adapter_type]">
+                                    <option value=""></option>
+                                    @foreach ($adapterOptions as $adapter)
+                                        <option value="{{ $adapter['value'] }}" @selected((string) ($row['adapter_type'] ?? '') === $adapter['value'])>{{ $adapter['label'] }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td>
+                                @php
+                                    $selectedOutputAction = \App\Enums\AccessControl\AccessBindingActionKey::fromStored($row['action_key'] ?? null)?->value;
+                                @endphp
+                                <select class="form-select form-select-sm" name="outputs[{{ $index }}][action_key]">
+                                    <option value=""></option>
+                                    @foreach (($outputActionOptions ?? []) as $option)
+                                        <option value="{{ $option['value'] }}" @selected($selectedOutputAction === $option['value'])>{{ $option['key'] }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" class="form-control form-control-sm" name="outputs[{{ $index }}][channel]" value="{{ $row['channel'] ?? '' }}">
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm" name="outputs[{{ $index }}][signal_reversed]">
+                                    <option value="0" @selected((string) ($row['signal_reversed'] ?? false ? '1' : '0') === '0')>No</option>
+                                    <option value="1" @selected((string) ($row['signal_reversed'] ?? false ? '1' : '0') === '1')>Yes</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="hidden" name="outputs[{{ $index }}][config_json]" value="{{ $row['config_json'] ?? '{}' }}">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-binding-row">Remove</button>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<template id="input-binding-template">
+    <tr>
+        <td>
+            <input type="hidden" name="inputs[__INDEX__][enabled]" value="0">
+            <input class="form-check-input" type="checkbox" name="inputs[__INDEX__][enabled]" value="1" checked>
+        </td>
+        <td>
+            <select class="form-select form-select-sm" name="inputs[__INDEX__][source_id]">
+                <option value="">None</option>
+                @foreach ($accessSources as $source)
+                    <option value="{{ $source->id }}">{{ $source->name }} ({{ strtoupper($source->type) }})</option>
+                @endforeach
+            </select>
+        </td>
+        <td>
+            <select class="form-select form-select-sm" name="inputs[__INDEX__][adapter_type]">
+                <option value=""></option>
+                @foreach ($adapterOptions as $adapter)
+                    <option value="{{ $adapter['value'] }}">{{ $adapter['label'] }}</option>
+                @endforeach
+            </select>
+        </td>
+        <td>
+            <select class="form-select form-select-sm" name="inputs[__INDEX__][action_key]">
+                <option value=""></option>
+                @foreach (($inputActionOptions ?? []) as $option)
+                    <option value="{{ $option['value'] }}">{{ $option['key'] }}</option>
+                @endforeach
+            </select>
+        </td>
+        <td><input type="text" class="form-control form-control-sm" name="inputs[__INDEX__][channel]"></td>
+        <td>
+            <select class="form-select form-select-sm" name="inputs[__INDEX__][signal_reversed]">
+                <option value="0">No</option>
+                <option value="1">Yes</option>
+            </select>
+        </td>
+        <td>
+            <input type="hidden" name="inputs[__INDEX__][config_json]" value="{}">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-binding-row">Remove</button>
+        </td>
+    </tr>
+</template>
+
+<template id="output-binding-template">
+    <tr>
+        <td>
+            <input type="hidden" name="outputs[__INDEX__][enabled]" value="0">
+            <input class="form-check-input" type="checkbox" name="outputs[__INDEX__][enabled]" value="1" checked>
+        </td>
+        <td>
+            <select class="form-select form-select-sm" name="outputs[__INDEX__][source_id]">
+                <option value="">None</option>
+                @foreach ($accessSources as $source)
+                    <option value="{{ $source->id }}">{{ $source->name }} ({{ strtoupper($source->type) }})</option>
+                @endforeach
+            </select>
+        </td>
+        <td>
+            <select class="form-select form-select-sm" name="outputs[__INDEX__][adapter_type]">
+                <option value=""></option>
+                @foreach ($adapterOptions as $adapter)
+                    <option value="{{ $adapter['value'] }}">{{ $adapter['label'] }}</option>
+                @endforeach
+            </select>
+        </td>
+        <td>
+            <select class="form-select form-select-sm" name="outputs[__INDEX__][action_key]">
+                <option value=""></option>
+                @foreach (($outputActionOptions ?? []) as $option)
+                    <option value="{{ $option['value'] }}">{{ $option['key'] }}</option>
+                @endforeach
+            </select>
+        </td>
+        <td><input type="text" class="form-control form-control-sm" name="outputs[__INDEX__][channel]"></td>
+        <td>
+            <select class="form-select form-select-sm" name="outputs[__INDEX__][signal_reversed]">
+                <option value="0">No</option>
+                <option value="1">Yes</option>
+            </select>
+        </td>
+        <td>
+            <input type="hidden" name="outputs[__INDEX__][config_json]" value="{}">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-binding-row">Remove</button>
+        </td>
+    </tr>
+</template>
+
+<script>
+    (() => {
+        const nextIndexByTable = {};
+
+        const computeInitialIndex = (tableId, prefix) => {
+            const tableBody = document.querySelector(`#${tableId} tbody`);
+            if (!tableBody) {
+                return 0;
+            }
+
+            let maxIndex = -1;
+            tableBody.querySelectorAll(`[name^="${prefix}["]`).forEach((element) => {
+                const name = element.getAttribute('name') || '';
+                const match = name.match(new RegExp(`^${prefix}\\[(\\d+)\\]`));
+                if (match) {
+                    maxIndex = Math.max(maxIndex, Number(match[1]));
+                }
+            });
+
+            return maxIndex + 1;
+        };
+
+        const addRow = (tableId, templateId, prefix) => {
+            const tableBody = document.querySelector(`#${tableId} tbody`);
+            const template = document.querySelector(`#${templateId}`);
+            if (!tableBody || !template) {
+                return;
+            }
+
+            if (typeof nextIndexByTable[tableId] === 'undefined') {
+                nextIndexByTable[tableId] = computeInitialIndex(tableId, prefix);
+            }
+
+            const nextIndex = nextIndexByTable[tableId];
+            nextIndexByTable[tableId] += 1;
+
+            const html = template.innerHTML.replaceAll('__INDEX__', String(nextIndex));
+            tableBody.insertAdjacentHTML('beforeend', html);
+        };
+
+        document.addEventListener('click', (event) => {
+            if (event.target instanceof HTMLElement && event.target.id === 'add-input-binding') {
+                addRow('inputs-table', 'input-binding-template', 'inputs');
+            }
+
+            if (event.target instanceof HTMLElement && event.target.id === 'add-output-binding') {
+                addRow('outputs-table', 'output-binding-template', 'outputs');
+            }
+
+            if (event.target instanceof HTMLElement && event.target.classList.contains('remove-binding-row')) {
+                const row = event.target.closest('tr');
+                if (row) {
+                    row.remove();
+                }
+            }
+        });
+    })();
+</script>

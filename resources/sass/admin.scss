@@ -1,0 +1,10 @@
+@import 'variables';
+@import '@tabler/core/scss/tabler';
+@import '@tabler/core/scss/tabler-vendors';
+
+
+/* Plugins */
+@import '@tabler/core/dist/libs/tom-select/dist/css/tom-select.bootstrap5.css';
+
+/* Custom Overrides */
+@import 'overrides';
