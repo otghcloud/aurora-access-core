@@ -3,6 +3,8 @@
 namespace OTGH\AccessControl\Core\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Foundation\Auth\User as AuthenticatableUser;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use OTGH\AccessControl\Core\Models\User;
 
@@ -65,18 +67,31 @@ class CreateInitialAdminUser extends Command
             return self::FAILURE;
         }
 
-        /** @var User|null $existing */
-        $existing = User::query()->where('email', $email)->first();
+        $userModelClass = config('auth.providers.users.model', User::class);
 
-        if ($existing instanceof User) {
+        if (! is_string($userModelClass) || ! is_subclass_of($userModelClass, AuthenticatableUser::class)) {
+            $this->error('Configured auth user model is invalid.');
+
+            return self::FAILURE;
+        }
+
+        /** @var AuthenticatableUser|null $existing */
+        $existing = $userModelClass::query()->where('email', $email)->first();
+
+        $payload = [
+            'name' => $name,
+            'email' => $email,
+            'password' => Hash::make($password),
+        ];
+
+        if ($existing instanceof AuthenticatableUser) {
             if (! (bool) $this->option('update-existing')) {
                 $this->warn(sprintf('User with email %s already exists, skipping.', $email));
 
                 return self::SUCCESS;
             }
 
-            $existing->name = $name;
-            $existing->password = $password;
+            $existing->forceFill($payload);
             $existing->save();
 
             $this->info(sprintf('Updated existing admin user: %s', $email));
@@ -84,11 +99,10 @@ class CreateInitialAdminUser extends Command
             return self::SUCCESS;
         }
 
-        User::query()->create([
-            'name' => $name,
-            'email' => $email,
-            'password' => $password,
-        ]);
+        /** @var AuthenticatableUser $newUser */
+        $newUser = new $userModelClass;
+        $newUser->forceFill($payload);
+        $newUser->save();
 
         $this->info(sprintf('Created initial admin user: %s', $email));
 
