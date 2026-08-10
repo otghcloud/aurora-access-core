@@ -7,6 +7,7 @@ WITH_ADAPTERS=false
 NON_INTERACTIVE=false
 LOCAL_PACKAGES_DIR=""
 VALIDATE_ONLY=false
+PROMPT_FD=0
 
 usage() {
   cat <<'EOF'
@@ -76,6 +77,25 @@ validate_email() {
   fi
 }
 
+init_prompt_input() {
+  if [[ "$NON_INTERACTIVE" == "true" ]]; then
+    return
+  fi
+
+  if [[ -t 0 ]]; then
+    PROMPT_FD=0
+    return
+  fi
+
+  if [[ -r /dev/tty ]]; then
+    exec 3</dev/tty
+    PROMPT_FD=3
+    return
+  fi
+
+  fail "Interactive prompts require a TTY. Use --non-interactive with DEFAULT_* values."
+}
+
 prompt_value() {
   local label="$1"
   local default_value="$2"
@@ -88,13 +108,13 @@ prompt_value() {
 
   local entered
   if [[ "$secret" == "true" ]]; then
-    read -r -s -p "$label: " entered
+    read -r -u "$PROMPT_FD" -s -p "$label: " entered
     echo
   else
     if [[ -n "$default_value" ]]; then
-      read -r -p "$label [$default_value]: " entered
+      read -r -u "$PROMPT_FD" -p "$label [$default_value]: " entered
     else
-      read -r -p "$label: " entered
+      read -r -u "$PROMPT_FD" -p "$label: " entered
     fi
   fi
 
@@ -167,7 +187,7 @@ prompt_yes_no() {
     fi
 
     local answer
-    read -r -p "$label $suffix: " answer
+    read -r -u "$PROMPT_FD" -p "$label $suffix: " answer
 
     if [[ -z "$answer" ]]; then
       echo "$default_answer"
@@ -254,6 +274,8 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+init_prompt_input
 
 if [[ -z "$TARGET_DIR" ]]; then
   target_default="${DEFAULT_TARGET_DIR:-./aurora-access}"
