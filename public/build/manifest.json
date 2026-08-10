@@ -1,0 +1,42 @@
+{
+  "_jquery-migrate.module-vgwjMFEJ.js": {
+    "file": "assets/jquery-migrate.module-vgwjMFEJ.js",
+    "name": "jquery-migrate.module"
+  },
+  "packages/access-core/resources/js/admin.js": {
+    "file": "assets/admin-CaEMv6mB.js",
+    "name": "admin",
+    "src": "packages/access-core/resources/js/admin.js",
+    "isEntry": true,
+    "imports": [
+      "_jquery-migrate.module-vgwjMFEJ.js"
+    ]
+  },
+  "packages/access-core/resources/js/app.js": {
+    "file": "assets/app-CaEMv6mB.js",
+    "name": "app",
+    "src": "packages/access-core/resources/js/app.js",
+    "isEntry": true,
+    "imports": [
+      "_jquery-migrate.module-vgwjMFEJ.js"
+    ]
+  },
+  "packages/access-core/resources/sass/admin.scss": {
+    "file": "assets/admin-BEsSnN1i.css",
+    "name": "admin",
+    "names": [
+      "admin.css"
+    ],
+    "src": "packages/access-core/resources/sass/admin.scss",
+    "isEntry": true
+  },
+  "packages/access-core/resources/sass/app.scss": {
+    "file": "assets/app-WCUwfAV5.css",
+    "name": "app",
+    "names": [
+      "app.css"
+    ],
+    "src": "packages/access-core/resources/sass/app.scss",
+    "isEntry": true
+  }
+}
