@@ -5,6 +5,7 @@ namespace OTGH\AccessControl\Core\Http\Controllers\Api;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Models\User;
 
@@ -24,6 +25,12 @@ class AuthTokenController extends Controller
             return response()->json([
                 'message' => 'Invalid credentials.',
             ], 422);
+        }
+
+        if (! Schema::hasTable('personal_access_tokens')) {
+            return response()->json([
+                'message' => 'Token storage is unavailable. Run database migrations and try again.',
+            ], 503);
         }
 
         $token = $user->createToken($validated['device_name']);

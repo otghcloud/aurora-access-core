@@ -267,6 +267,18 @@ nullable_env_value() {
   quote_env_value "$value"
 }
 
+has_personal_access_tokens_table() {
+  php -r '
+    require "vendor/autoload.php";
+
+    $app = require "bootstrap/app.php";
+    $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+    $kernel->bootstrap();
+
+    exit(Illuminate\Support\Facades\Schema::hasTable("personal_access_tokens") ? 0 : 1);
+  '
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --target)
@@ -495,6 +507,7 @@ fi
 set_env_value "$ENV_FILE" REDIS_HOST "$(quote_env_value "$redis_host")"
 set_env_value "$ENV_FILE" REDIS_PORT "$(quote_env_value "$redis_port")"
 set_env_value "$ENV_FILE" REDIS_PASSWORD "$(nullable_env_value "$redis_password")"
+set_env_value "$ENV_FILE" QUEUE_CONNECTION "redis"
 set_env_value "$ENV_FILE" MQTT_HOST "$(quote_env_value "$mqtt_host")"
 set_env_value "$ENV_FILE" MQTT_PORT "$(quote_env_value "$mqtt_port")"
 set_env_value "$ENV_FILE" MQTT_CLIENT_ID "$(quote_env_value "$mqtt_client_id")"
@@ -509,6 +522,14 @@ set_env_value "$ENV_FILE" MQTT_CLEAN_SESSION "false"
 
 log_step "Running database migrations"
 php artisan migrate --force
+
+if ! has_personal_access_tokens_table; then
+  log_step "Publishing Sanctum migrations"
+  php artisan vendor:publish --provider="Laravel\\Sanctum\\SanctumServiceProvider" --tag="sanctum-migrations" --force
+
+  log_step "Re-running database migrations for Sanctum"
+  php artisan migrate --force
+fi
 
 log_step "Creating initial admin user"
 php artisan app:create-initial-admin-user \

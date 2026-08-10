@@ -1,6 +1,8 @@
 @extends('layouts.admin')
 
 @section('content')
+    @php($hasSerialDevicesRoute = \Illuminate\Support\Facades\Route::has('admin.serial-devices'))
+
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <h1 class="h3 mb-1">Health</h1>
@@ -79,7 +81,11 @@
                 <h2 class="h5 mb-0">Serial Devices</h2>
                 <p class="text-muted small mb-0">Live serial monitor processes, device readability, and latest reader activity.</p>
             </div>
-            <a href="{{ route('admin.serial-devices') }}" class="btn btn-outline-primary btn-sm">Open Serial Devices</a>
+            @if ($hasSerialDevicesRoute)
+                <a href="{{ route('admin.serial-devices') }}" class="btn btn-outline-primary btn-sm">Open Serial Devices</a>
+            @else
+                <button type="button" class="btn btn-outline-secondary btn-sm" disabled>Serial Adapter Not Installed</button>
+            @endif
         </div>
         <div class="card-body">
             <div class="row g-3 mb-3">

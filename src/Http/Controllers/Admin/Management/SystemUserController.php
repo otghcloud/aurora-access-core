@@ -5,6 +5,7 @@ namespace OTGH\AccessControl\Core\Http\Controllers\Admin\Management;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -15,11 +16,23 @@ class SystemUserController extends Controller
 {
     public function index(): View
     {
-        return view('admin.management.users.index', [
-            'users' => User::query()
+        $users = User::query()->orderBy('name')->paginate(20);
+
+        if ($this->sanctumTokensTableExists()) {
+            $users = User::query()
                 ->withCount('tokens')
                 ->orderBy('name')
-                ->paginate(20),
+                ->paginate(20);
+        } else {
+            $users->getCollection()->transform(function (User $user): User {
+                $user->setAttribute('tokens_count', 0);
+
+                return $user;
+            });
+        }
+
+        return view('admin.management.users.index', [
+            'users' => $users,
         ]);
     }
 
@@ -46,7 +59,9 @@ class SystemUserController extends Controller
     {
         return view('admin.management.users.edit', [
             'systemUser' => $user,
-            'tokens' => $user->tokens()->latest('id')->get(),
+            'tokens' => $this->sanctumTokensTableExists()
+                ? $user->tokens()->latest('id')->get()
+                : collect(),
         ]);
     }
 
@@ -83,6 +98,11 @@ class SystemUserController extends Controller
 
     public function storeToken(Request $request, User $user): RedirectResponse
     {
+        if (! $this->sanctumTokensTableExists()) {
+            return redirect()->route('admin.system-users.edit', $user)
+                ->withErrors(['Sanctum token storage is unavailable. Run database migrations and try again.']);
+        }
+
         $validated = $request->validate([
             'token_name' => ['required', 'string', 'max:255'],
         ]);
@@ -96,6 +116,11 @@ class SystemUserController extends Controller
 
     public function destroyToken(User $user, PersonalAccessToken $token): RedirectResponse
     {
+        if (! $this->sanctumTokensTableExists()) {
+            return redirect()->route('admin.system-users.edit', $user)
+                ->withErrors(['Sanctum token storage is unavailable. Run database migrations and try again.']);
+        }
+
         if ((int) $token->tokenable_id !== (int) $user->id || $token->tokenable_type !== User::class) {
             abort(404);
         }
@@ -104,5 +129,10 @@ class SystemUserController extends Controller
 
         return redirect()->route('admin.system-users.edit', $user)
             ->with('status', 'API token revoked successfully.');
+    }
+
+    private function sanctumTokensTableExists(): bool
+    {
+        return Schema::hasTable('personal_access_tokens');
     }
 }

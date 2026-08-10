@@ -25,6 +25,8 @@ use OTGH\AccessControl\Core\Services\AccessControl\AccessControlSettingsReposito
 use OTGH\AccessControl\Core\Services\AccessControl\DiagnosticsNavigationRegistry;
 use OTGH\AccessControl\Core\Services\AccessControl\HealthCheckRegistry;
 use OTGH\AccessControl\Core\Services\AccessControl\HttpSourceConnectionTester;
+use OTGH\AccessControl\Core\Services\AccessControl\NullSerialReaderDiagnosticsService;
+use OTGH\AccessControl\Core\Services\AccessControl\SerialReaderDiagnosticsServiceInterface;
 use OTGH\AccessControl\Core\Services\AccessControl\SourceConnectionTesterRegistry;
 use OTGH\AccessControl\Core\Services\Supervisor\SupervisorProgramRegistry;
 
@@ -54,6 +56,7 @@ class AccessCoreServiceProvider extends ServiceProvider
         $this->app->singleton(SourceConnectionTesterRegistry::class);
         $this->app->singleton(DiagnosticsNavigationRegistry::class);
         $this->app->singleton(HttpSourceConnectionTester::class);
+        $this->app->singletonIf(SerialReaderDiagnosticsServiceInterface::class, NullSerialReaderDiagnosticsService::class);
         $this->app->singleton(AccessControlSettingsRepository::class);
         $this->app->singleton(SupervisorProgramRegistry::class);
         $this->app->singleton(HealthCheckRegistry::class);
