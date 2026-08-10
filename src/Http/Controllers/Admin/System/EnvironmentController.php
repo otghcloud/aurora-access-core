@@ -29,7 +29,7 @@ class EnvironmentController extends Controller
         $packages = [];
 
         foreach (InstalledVersions::getInstalledPackages() as $packageName) {
-            if (! str_starts_with($packageName, 'otghcloud/access-')) {
+            if (! str_starts_with($packageName, 'otghcloud/aurora-access-')) {
                 continue;
             }
 
