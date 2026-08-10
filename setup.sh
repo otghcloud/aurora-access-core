@@ -511,7 +511,8 @@ log_step "Creating initial admin user"
 php artisan app:create-initial-admin-user \
   --name="$admin_name" \
   --email="$admin_email" \
-  --password="$admin_password"
+  --password="$admin_password" \
+  --update-existing
 
 log_step "Installing frontend dependencies"
 npm install --ignore-scripts
