@@ -228,6 +228,10 @@ class AccessCoreServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../../resources/views' => resource_path('views'),
             ], 'aurora-access-core-views');
+
+            $this->publishes([
+                __DIR__.'/../../public/build' => public_path('vendor/aurora-access-core/build'),
+            ], 'aurora-access-core-assets');
         }
 
         Paginator::useBootstrapFive();

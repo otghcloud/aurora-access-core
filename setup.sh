@@ -472,6 +472,9 @@ if [[ "$WITH_ADAPTERS" == "true" ]]; then
     --with-all-dependencies
 fi
 
+  log_step "Publishing Aurora Access frontend assets"
+  php artisan vendor:publish --tag=aurora-access-core-assets --force
+
 ENV_FILE=".env"
 
 set_env_value "$ENV_FILE" APP_NAME "$(quote_env_value "$app_name")"

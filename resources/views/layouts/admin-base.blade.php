@@ -19,7 +19,7 @@
 		<link href="/site.webmanifest" rel="manifest">-->
 		<meta content="" name="description" />
 
-		@vite(['resources/sass/admin.scss', 'resources/js/admin.js'])
+		@vite(['packages/access-core/resources/sass/admin.scss', 'packages/access-core/resources/js/admin.js'], 'vendor/aurora-access-core/build')
 		@livewireStyles
 
 	</head>
