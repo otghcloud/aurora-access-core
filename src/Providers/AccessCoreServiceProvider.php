@@ -5,6 +5,7 @@ namespace OTGH\AccessControl\Core\Providers;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 use OTGH\AccessControl\Core\Console\Commands\AccessControlHealthCheck;
 use OTGH\AccessControl\Core\Console\Commands\CreateInitialAdminUser;
 use OTGH\AccessControl\Core\Console\Commands\MonitorReaderPushRequests;
@@ -12,6 +13,8 @@ use OTGH\AccessControl\Core\Console\Commands\RebuildAccessControlSupervisorConfi
 use OTGH\AccessControl\Core\Console\Commands\ReconcileReaderLockState;
 use OTGH\AccessControl\Core\Console\Commands\SyncReaderMqttState;
 use OTGH\AccessControl\Core\Console\Commands\TestReadEvent;
+use OTGH\AccessControl\Core\Livewire\Admin\AccessReadersTable;
+use OTGH\AccessControl\Core\Livewire\Admin\DashboardLockCards;
 use OTGH\AccessControl\Core\Models\Hardware\Reader;
 use OTGH\AccessControl\Core\Models\Hardware\Source;
 use OTGH\AccessControl\Core\Observers\AccessReaderObserver;
@@ -192,6 +195,7 @@ class AccessCoreServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
+        $this->registerLivewireComponents();
 
         if (! $this->app->routesAreCached()) {
             Route::middleware('web')->group(__DIR__.'/../../routes/web.php');
@@ -234,5 +238,15 @@ class AccessCoreServiceProvider extends ServiceProvider
 
         Reader::observe(AccessReaderObserver::class);
         Source::observe(AccessSourceObserver::class);
+    }
+
+    private function registerLivewireComponents(): void
+    {
+        if (! class_exists(Livewire::class)) {
+            return;
+        }
+
+        Livewire::component('admin.dashboard-lock-cards', DashboardLockCards::class);
+        Livewire::component('admin.access-readers-table', AccessReadersTable::class);
     }
 }
