@@ -6,6 +6,7 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use OTGH\AccessControl\Core\Console\Commands\AccessControlHealthCheck;
+use OTGH\AccessControl\Core\Console\Commands\CreateInitialAdminUser;
 use OTGH\AccessControl\Core\Console\Commands\MonitorReaderPushRequests;
 use OTGH\AccessControl\Core\Console\Commands\RebuildAccessControlSupervisorConfig;
 use OTGH\AccessControl\Core\Console\Commands\ReconcileReaderLockState;
@@ -204,6 +205,7 @@ class AccessCoreServiceProvider extends ServiceProvider
 
             $this->commands([
                 AccessControlHealthCheck::class,
+                CreateInitialAdminUser::class,
                 MonitorReaderPushRequests::class,
                 RebuildAccessControlSupervisorConfig::class,
                 ReconcileReaderLockState::class,
