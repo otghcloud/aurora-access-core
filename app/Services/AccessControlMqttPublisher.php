@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Access\Area;
 use App\Models\Hardware\Reader;
 use App\Models\Hardware\Sensor;
 use App\Services\AccessControl\AccessControlSettingsRepository;
@@ -319,7 +320,7 @@ class AccessControlMqttPublisher
     {
         $area = $sensor->area;
 
-        if (! $area instanceof \App\Models\Access\Area) {
+        if (! $area instanceof Area) {
             throw new \RuntimeException('Sensor must be assigned to an area for MQTT topic generation.');
         }
 
