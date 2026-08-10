@@ -16,10 +16,6 @@
         "laravel/tinker": "^3.0",
         "laravel/ui": "^4.6",
         "livewire/livewire": "^3.0",
-        "otghcloud/aurora-access-adapter-edgelink": "*@dev",
-        "otghcloud/aurora-access-adapter-modbus": "*@dev",
-        "otghcloud/aurora-access-adapter-opc": "*@dev",
-        "otghcloud/aurora-access-adapter-serial-wiegand": "*@dev",
         "php-mqtt/laravel-client": "^1.8"
     },
     "require-dev": {
@@ -44,10 +40,6 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "OTGH\\AccessControl\\EdgelinkAdapter\\Tests\\": "packages/access-adapter-edgelink/tests/",
-            "OTGH\\AccessControl\\ModbusAdapter\\Tests\\": "packages/access-adapter-modbus/tests/",
-            "OTGH\\AccessControl\\OpcAdapter\\Tests\\": "packages/access-adapter-opc/tests/",
-            "OTGH\\AccessControl\\SerialWiegandAdapter\\Tests\\": "packages/access-adapter-serial-wiegand/tests/",
             "Tests\\": "tests/"
         }
     },
@@ -88,24 +80,7 @@
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
         ]
     },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "packages/access-adapter-edgelink"
-        },
-        {
-            "type": "path",
-            "url": "packages/access-adapter-modbus"
-        },
-        {
-            "type": "path",
-            "url": "packages/access-adapter-opc"
-        },
-        {
-            "type": "path",
-            "url": "packages/access-adapter-serial-wiegand"
-        }
-    ],
+    "repositories": [],
     "config": {
         "optimize-autoloader": true,
         "preferred-install": "dist",
@@ -117,5 +92,5 @@
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
-    "replace": {}
+    "replace": []
 }
