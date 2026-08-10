@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\Api\AuthTokenController;
-use App\Http\Controllers\Api\ReaderControlController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use OTGH\AccessControl\Core\Http\Controllers\Api\AuthTokenController;
+use OTGH\AccessControl\Core\Http\Controllers\Api\ReaderControlController;
 
 Route::post('/auth/token', [AuthTokenController::class, 'store'])->middleware('throttle:api');
 

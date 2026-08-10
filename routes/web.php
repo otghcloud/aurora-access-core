@@ -1,24 +1,24 @@
 <?php
 
-use App\Http\Controllers\AccessController;
-use App\Http\Controllers\Admin\Access\AccessAreaController;
-use App\Http\Controllers\Admin\Access\AccessCardController;
-use App\Http\Controllers\Admin\Access\AccessEventController;
-use App\Http\Controllers\Admin\Access\AccessUserController;
-use App\Http\Controllers\Admin\Access\AreaPermissionController;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\Hardware\AccessAdapterBindingController;
-use App\Http\Controllers\Admin\Hardware\AccessLockController;
-use App\Http\Controllers\Admin\Hardware\AccessReaderController;
-use App\Http\Controllers\Admin\Hardware\AccessSensorController;
-use App\Http\Controllers\Admin\Hardware\AccessSourceController;
-use App\Http\Controllers\Admin\Hardware\AccessSwitchController;
-use App\Http\Controllers\Admin\Health\HealthController;
-use App\Http\Controllers\Admin\Management\SystemUserController;
-use App\Http\Controllers\Admin\System\ConfigurationController;
-use App\Http\Controllers\Admin\System\EnvironmentController;
-use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Route;
+use OTGH\AccessControl\Core\Http\Controllers\AccessController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\Access\AccessAreaController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\Access\AccessCardController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\Access\AccessEventController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\Access\AccessUserController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\Access\AreaPermissionController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\DashboardController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\Hardware\AccessAdapterBindingController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\Hardware\AccessLockController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\Hardware\AccessReaderController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\Hardware\AccessSensorController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\Hardware\AccessSourceController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\Hardware\AccessSwitchController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\Health\HealthController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\Management\SystemUserController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\System\ConfigurationController;
+use OTGH\AccessControl\Core\Http\Controllers\Admin\System\EnvironmentController;
+use OTGH\AccessControl\Core\Http\Controllers\Auth\LoginController;
 
 Route::get('/', function () {
     return response()->json([

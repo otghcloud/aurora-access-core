@@ -97,7 +97,7 @@
                 <tbody>
                     @forelse ($lockBindings as $binding)
                         <tr>
-                            @php($actionEnum = \App\Enums\AccessControl\AccessBindingActionKey::fromStored($binding->action_key))
+                            @php($actionEnum = \OTGH\AccessControl\Core\Enums\AccessControl\AccessBindingActionKey::fromStored($binding->action_key))
                             <td><code>{{ $actionEnum?->key() ?? $binding->action_key }}</code></td>
                             <td><code>{{ $binding->adapter_type }}</code></td>
                             <td><code>{{ $binding->channel ?? '-' }}</code></td>

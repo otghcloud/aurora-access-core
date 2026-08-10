@@ -60,7 +60,7 @@
     <div class="col-md-4">
         <label for="action_key" class="form-label">Action Key</label>
         @php
-            $selectedAction = \App\Enums\AccessControl\AccessBindingActionKey::fromStored(old('action_key', $accessBinding?->action_key));
+            $selectedAction = \OTGH\AccessControl\Core\Enums\AccessControl\AccessBindingActionKey::fromStored(old('action_key', $accessBinding?->action_key));
         @endphp
         <select class="form-select" id="action_key" name="action_key" required>
             <option value="">Select action</option>

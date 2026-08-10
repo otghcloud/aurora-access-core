@@ -88,7 +88,7 @@
                             <td><code>{{ $binding->direction }}</code></td>
                             <td><code>{{ $binding->target_type }}:{{ $binding->target_id }}</code></td>
                             <td>
-                                @php($actionEnum = \App\Enums\AccessControl\AccessBindingActionKey::fromStored($binding->action_key))
+                                @php($actionEnum = \OTGH\AccessControl\Core\Enums\AccessControl\AccessBindingActionKey::fromStored($binding->action_key))
                                 <code>{{ $actionEnum?->key() ?? $binding->action_key }}</code>
                             </td>
                             <td><code>{{ $binding->adapter_type }}</code></td>

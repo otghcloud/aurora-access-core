@@ -65,7 +65,7 @@
                                     </td>
                                     <td>
                                         @php
-                                            $selectedOutputAction = \App\Enums\AccessControl\AccessBindingActionKey::fromStored($row['action_key'] ?? null)?->value;
+                                            $selectedOutputAction = \OTGH\AccessControl\Core\Enums\AccessControl\AccessBindingActionKey::fromStored($row['action_key'] ?? null)?->value;
                                         @endphp
                                         <select class="form-select form-select-sm" name="outputs[{{ $index }}][action_key]">
                                             <option value=""></option>

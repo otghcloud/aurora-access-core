@@ -86,7 +86,7 @@
                             <td><span class="badge text-bg-{{ $binding->direction === 'input' ? 'info' : 'primary' }}">{{ strtoupper($binding->direction) }}</span></td>
                             <td><code>{{ $binding->adapter_type }}</code></td>
                             @php
-                                $actionEnum = \App\Enums\AccessControl\AccessBindingActionKey::fromStored($binding->action_key);
+                                $actionEnum = \OTGH\AccessControl\Core\Enums\AccessControl\AccessBindingActionKey::fromStored($binding->action_key);
                             @endphp
                             <td>
                                 <code>{{ $actionEnum?->key() ?? $binding->action_key }}</code>

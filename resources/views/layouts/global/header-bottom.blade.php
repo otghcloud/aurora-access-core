@@ -1,6 +1,6 @@
 <header class="navbar-expand-md">
 	@php
-		$diagnosticsNavigationItems = app(\App\Services\AccessControl\DiagnosticsNavigationRegistry::class)->all();
+		$diagnosticsNavigationItems = app(\OTGH\AccessControl\Core\Services\AccessControl\DiagnosticsNavigationRegistry::class)->all();
 	@endphp
 	<div class="collapse navbar-collapse" id="navbar-menu">
 		<div class="navbar">
