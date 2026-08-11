@@ -20,6 +20,8 @@
                         <th>Adapter</th>
                         <th>Action</th>
                         <th>Channel/Tag</th>
+                        <th>Periodic</th>
+                        <th>Every (s)</th>
                         <th>Signal Reversed</th>
                         <th></th>
                     </tr>
@@ -62,6 +64,16 @@
                                 <input type="text" class="form-control form-control-sm" name="inputs[{{ $index }}][channel]" value="{{ $row['channel'] ?? '' }}">
                             </td>
                             <td>
+                                <select class="form-select form-select-sm" name="inputs[{{ $index }}][mqtt_periodic_updates_enabled]">
+                                    <option value="inherit" @selected((string) ($row['mqtt_periodic_updates_enabled'] ?? 'inherit') === 'inherit')>Inherit</option>
+                                    <option value="1" @selected((string) ($row['mqtt_periodic_updates_enabled'] ?? '') === '1')>Enabled</option>
+                                    <option value="0" @selected((string) ($row['mqtt_periodic_updates_enabled'] ?? '') === '0')>Disabled</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="number" min="1" class="form-control form-control-sm" name="inputs[{{ $index }}][mqtt_periodic_update_frequency_seconds]" value="{{ $row['mqtt_periodic_update_frequency_seconds'] ?? '' }}" placeholder="e.g. 60">
+                            </td>
+                            <td>
                                 <select class="form-select form-select-sm" name="inputs[{{ $index }}][signal_reversed]">
                                     <option value="0" @selected((string) ($row['signal_reversed'] ?? false ? '1' : '0') === '0')>No</option>
                                     <option value="1" @selected((string) ($row['signal_reversed'] ?? false ? '1' : '0') === '1')>Yes</option>
@@ -92,6 +104,8 @@
                         <th>Adapter</th>
                         <th>Action</th>
                         <th>Channel/Tag</th>
+                        <th>Periodic</th>
+                        <th>Every (s)</th>
                         <th>Signal Reversed</th>
                         <th></th>
                     </tr>
@@ -132,6 +146,16 @@
                             </td>
                             <td>
                                 <input type="text" class="form-control form-control-sm" name="outputs[{{ $index }}][channel]" value="{{ $row['channel'] ?? '' }}">
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm" name="outputs[{{ $index }}][mqtt_periodic_updates_enabled]">
+                                    <option value="inherit" @selected((string) ($row['mqtt_periodic_updates_enabled'] ?? 'inherit') === 'inherit')>Inherit</option>
+                                    <option value="1" @selected((string) ($row['mqtt_periodic_updates_enabled'] ?? '') === '1')>Enabled</option>
+                                    <option value="0" @selected((string) ($row['mqtt_periodic_updates_enabled'] ?? '') === '0')>Disabled</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="number" min="1" class="form-control form-control-sm" name="outputs[{{ $index }}][mqtt_periodic_update_frequency_seconds]" value="{{ $row['mqtt_periodic_update_frequency_seconds'] ?? '' }}" placeholder="e.g. 60">
                             </td>
                             <td>
                                 <select class="form-select form-select-sm" name="outputs[{{ $index }}][signal_reversed]">
@@ -183,6 +207,14 @@
         </td>
         <td><input type="text" class="form-control form-control-sm" name="inputs[__INDEX__][channel]"></td>
         <td>
+            <select class="form-select form-select-sm" name="inputs[__INDEX__][mqtt_periodic_updates_enabled]">
+                <option value="inherit" selected>Inherit</option>
+                <option value="1">Enabled</option>
+                <option value="0">Disabled</option>
+            </select>
+        </td>
+        <td><input type="number" min="1" class="form-control form-control-sm" name="inputs[__INDEX__][mqtt_periodic_update_frequency_seconds]" placeholder="e.g. 60"></td>
+        <td>
             <select class="form-select form-select-sm" name="inputs[__INDEX__][signal_reversed]">
                 <option value="0">No</option>
                 <option value="1">Yes</option>
@@ -226,6 +258,14 @@
             </select>
         </td>
         <td><input type="text" class="form-control form-control-sm" name="outputs[__INDEX__][channel]"></td>
+        <td>
+            <select class="form-select form-select-sm" name="outputs[__INDEX__][mqtt_periodic_updates_enabled]">
+                <option value="inherit" selected>Inherit</option>
+                <option value="1">Enabled</option>
+                <option value="0">Disabled</option>
+            </select>
+        </td>
+        <td><input type="number" min="1" class="form-control form-control-sm" name="outputs[__INDEX__][mqtt_periodic_update_frequency_seconds]" placeholder="e.g. 60"></td>
         <td>
             <select class="form-select form-select-sm" name="outputs[__INDEX__][signal_reversed]">
                 <option value="0">No</option>

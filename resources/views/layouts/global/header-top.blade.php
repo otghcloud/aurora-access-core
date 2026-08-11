@@ -4,9 +4,7 @@
 			<span class="navbar-toggler-icon"></span>
 		</button>
 		<div class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3" data-bs-theme="dark">
-			<!--<a aria-label="OTGH Cloud" href="/">-->
-				<h2>Access Controller Admin</h2>
-			<!--</a>-->
+				<h2>Aurora Access Controller</h2>
 		</div>
 		<div class="navbar-nav flex-row order-md-last">
 			<div class="nav-item dropdown">

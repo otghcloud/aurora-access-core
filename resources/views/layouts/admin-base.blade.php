@@ -5,7 +5,7 @@
 		<meta charset="utf-8" />
 		<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport" />
 		<meta content="ie=edge" http-equiv="X-UA-Compatible" />
-		<title>@yield('meta-page-title') :: {{ config('app.name', 'Access Control') }}</title>
+		<title>@yield('meta-page-title') :: {{ config('app.name', 'Aurora Access Controller') }}</title>
 		<meta content="#662071" name="msapplication-TileColor" />
 		<meta content="#662071" name="theme-color" />
 		<meta content="black" name="apple-mobile-web-app-status-bar-style" />

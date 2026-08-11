@@ -3,6 +3,7 @@
 namespace OTGH\AccessControl\Core\Services;
 
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use OTGH\AccessControl\Core\Models\Access\Area;
@@ -80,10 +81,18 @@ class AccessControlMqttPublisher
         }
     }
 
-    public function publishSensorState(Sensor $sensor): void
+    /**
+     * @param  array{force?:bool,periodic_updates_enabled?:bool|null,periodic_update_frequency_seconds?:int|null}  $options
+     */
+    public function publishSensorState(Sensor $sensor, array $options = []): void
     {
+        $state = $sensor->state ? 1 : 0;
+        if (! $this->shouldPublishSensorState($sensor, $state, $options)) {
+            return;
+        }
+
         $payload = [
-            'state' => $sensor->state ? 1 : 0,
+            'state' => $state,
             'ts' => now()->toIso8601String(),
             'sensor_id' => $sensor->id,
             'sensor_identifier' => $sensor->identifier,
@@ -95,6 +104,11 @@ class AccessControlMqttPublisher
 
         try {
             $this->publishPayload($connectionName, $topic, $payload, $sensor);
+
+            Cache::put($this->sensorStatePublishedCacheKey((int) $sensor->id), [
+                'state' => $state,
+                'published_at' => now()->toIso8601String(),
+            ], now()->addDays(7));
         } catch (Throwable $e) {
             Log::warning('Failed to publish sensor MQTT state.', [
                 'sensor_id' => $sensor->id,
@@ -104,6 +118,57 @@ class AccessControlMqttPublisher
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * @param  array{force?:bool,periodic_updates_enabled?:bool|null,periodic_update_frequency_seconds?:int|null}  $options
+     */
+    private function shouldPublishSensorState(Sensor $sensor, int $state, array $options): bool
+    {
+        if ((bool) ($options['force'] ?? false)) {
+            return true;
+        }
+
+        $cacheKey = $this->sensorStatePublishedCacheKey((int) $sensor->id);
+        $lastPublished = Cache::get($cacheKey);
+
+        if (! is_array($lastPublished)) {
+            return true;
+        }
+
+        $lastState = Arr::get($lastPublished, 'state');
+        if (is_numeric($lastState) && (int) $lastState !== $state) {
+            return true;
+        }
+
+        $globalPeriodicEnabled = $this->settings->getBool('mqtt_periodic_updates_enabled', false);
+        $globalFrequency = max(1, $this->settings->getInt('mqtt_periodic_update_frequency_seconds', 60));
+        $periodicEnabled = array_key_exists('periodic_updates_enabled', $options)
+            ? (bool) ($options['periodic_updates_enabled'] ?? false)
+            : $globalPeriodicEnabled;
+        $periodicFrequency = array_key_exists('periodic_update_frequency_seconds', $options)
+            ? max(1, (int) ($options['periodic_update_frequency_seconds'] ?? $globalFrequency))
+            : $globalFrequency;
+
+        if (! $periodicEnabled) {
+            return false;
+        }
+
+        $publishedAt = Arr::get($lastPublished, 'published_at');
+        if (! is_string($publishedAt) || trim($publishedAt) === '') {
+            return true;
+        }
+
+        try {
+            return now()->diffInSeconds($publishedAt) >= $periodicFrequency;
+        } catch (Throwable) {
+            return true;
+        }
+    }
+
+    private function sensorStatePublishedCacheKey(int $sensorId): string
+    {
+        return 'access_control:sensor_state:published:'.$sensorId;
     }
 
     /**

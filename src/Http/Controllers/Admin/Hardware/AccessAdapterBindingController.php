@@ -162,7 +162,7 @@ class AccessAdapterBindingController extends Controller
         if ($binding->target_type === 'sensor') {
             $sensor = Sensor::query()->find($binding->target_id);
             if ($sensor instanceof Sensor) {
-                app(AccessControlMqttPublisher::class)->publishSensorState($sensor);
+                app(AccessControlMqttPublisher::class)->publishSensorState($sensor, ['force' => true]);
             }
         }
 
@@ -183,7 +183,7 @@ class AccessAdapterBindingController extends Controller
         if ($binding->target_type === 'sensor') {
             $sensor = Sensor::query()->find($binding->target_id);
             if ($sensor instanceof Sensor) {
-                app(AccessControlMqttPublisher::class)->publishSensorState($sensor);
+                app(AccessControlMqttPublisher::class)->publishSensorState($sensor, ['force' => true]);
             }
         }
 
@@ -216,6 +216,8 @@ class AccessAdapterBindingController extends Controller
             'enabled' => ['required', 'boolean'],
             'config_json' => ['nullable', 'string'],
             'metadata_json' => ['nullable', 'string'],
+            'mqtt_periodic_updates_enabled' => ['nullable', 'string', 'in:inherit,0,1'],
+            'mqtt_periodic_update_frequency_seconds' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $resolvedAction = AccessBindingActionKey::fromStored($validated['action_key']);
@@ -259,6 +261,21 @@ class AccessAdapterBindingController extends Controller
 
         $this->assertTargetExists($validated['target_type'], (int) $validated['target_id']);
 
+        $config = $this->decodeJsonField($validated['config_json'] ?? null, 'config_json');
+
+        $periodicMode = strtolower(trim((string) ($validated['mqtt_periodic_updates_enabled'] ?? 'inherit')));
+        if (in_array($periodicMode, ['0', '1'], true)) {
+            $config['mqtt_periodic_updates_enabled'] = $periodicMode === '1';
+        } else {
+            unset($config['mqtt_periodic_updates_enabled']);
+        }
+
+        if (isset($validated['mqtt_periodic_update_frequency_seconds']) && is_numeric($validated['mqtt_periodic_update_frequency_seconds'])) {
+            $config['mqtt_periodic_update_frequency_seconds'] = max(1, (int) $validated['mqtt_periodic_update_frequency_seconds']);
+        } else {
+            unset($config['mqtt_periodic_update_frequency_seconds']);
+        }
+
         return [
             'direction' => $validated['direction'],
             'adapter_type' => $capabilities->normalizeBindingAdapterType($validated['adapter_type']) ?? $validated['adapter_type'],
@@ -269,7 +286,7 @@ class AccessAdapterBindingController extends Controller
             'channel' => $this->nullableString($validated['channel'] ?? null),
             'signal_reversed' => (bool) $validated['signal_reversed'],
             'enabled' => (bool) $validated['enabled'],
-            'config' => $this->decodeJsonField($validated['config_json'] ?? null, 'config_json'),
+            'config' => $config,
             'metadata' => $this->decodeJsonField($validated['metadata_json'] ?? null, 'metadata_json'),
         ];
     }

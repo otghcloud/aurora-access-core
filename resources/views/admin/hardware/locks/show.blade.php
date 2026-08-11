@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+@section('meta-page-title', 'Lock ' . $accessLock->name)
 
 @section('content')
     @php

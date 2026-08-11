@@ -72,6 +72,31 @@ class AccessControlSettingsRepository
         return is_numeric($value) ? (int) $value : $default;
     }
 
+    public function getBool(string $key, bool $default): bool
+    {
+        $value = $this->get($key, $default);
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_numeric($value)) {
+            return (int) $value === 1;
+        }
+
+        $normalized = strtolower(trim((string) $value));
+
+        if (in_array($normalized, ['1', 'true', 'yes', 'on'], true)) {
+            return true;
+        }
+
+        if (in_array($normalized, ['0', 'false', 'no', 'off'], true)) {
+            return false;
+        }
+
+        return $default;
+    }
+
     private function normalizeKey(string $key): string
     {
         return trim(str_replace('..', '.', $key), '. ');

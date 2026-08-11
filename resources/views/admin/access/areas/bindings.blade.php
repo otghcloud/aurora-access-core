@@ -1,4 +1,5 @@
 @extends('layouts.admin-base')
+@section('meta-page-title', 'Area Bindings')
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-4">

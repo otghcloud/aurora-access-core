@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+@section('meta-page-title', 'Reader ' . $accessReader->name)
 
 @section('content')
     @php

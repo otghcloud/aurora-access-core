@@ -689,6 +689,20 @@ class AccessReaderController extends Controller
                 $config = $decoded;
             }
 
+            $periodicMode = strtolower(trim((string) ($row['mqtt_periodic_updates_enabled'] ?? 'inherit')));
+            if (in_array($periodicMode, ['1', '0'], true)) {
+                $config['mqtt_periodic_updates_enabled'] = $periodicMode === '1';
+            } else {
+                unset($config['mqtt_periodic_updates_enabled']);
+            }
+
+            $periodicFrequencyRaw = trim((string) ($row['mqtt_periodic_update_frequency_seconds'] ?? ''));
+            if ($periodicFrequencyRaw !== '' && is_numeric($periodicFrequencyRaw)) {
+                $config['mqtt_periodic_update_frequency_seconds'] = max(1, (int) $periodicFrequencyRaw);
+            } else {
+                unset($config['mqtt_periodic_update_frequency_seconds']);
+            }
+
             $normalized[] = [
                 'target' => 'reader',
                 'source_id' => $sourceId,
@@ -722,6 +736,8 @@ class AccessReaderController extends Controller
     {
         $capabilities = app(AccessControlCapabilityRegistry::class);
         $config = is_array($binding->config) ? $binding->config : [];
+        $periodicEnabled = data_get($config, 'mqtt_periodic_updates_enabled');
+        $periodicFrequency = data_get($config, 'mqtt_periodic_update_frequency_seconds');
 
         return [
             'target' => 'reader',
@@ -731,6 +747,8 @@ class AccessReaderController extends Controller
             'channel' => $binding->channel,
             'signal_reversed' => (bool) $binding->signal_reversed,
             'enabled' => (bool) $binding->enabled,
+            'mqtt_periodic_updates_enabled' => is_bool($periodicEnabled) ? ($periodicEnabled ? '1' : '0') : 'inherit',
+            'mqtt_periodic_update_frequency_seconds' => is_numeric($periodicFrequency) ? (int) $periodicFrequency : null,
             'config_json' => (string) json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
         ];
     }

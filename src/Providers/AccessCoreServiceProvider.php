@@ -130,6 +130,28 @@ class AccessCoreServiceProvider extends ServiceProvider
             );
 
             $registry->registerField(
+                key: 'mqtt_periodic_updates_enabled',
+                label: 'MQTT Periodic Updates Enabled',
+                type: 'boolean',
+                description: 'When enabled, state messages are periodically republished even if unchanged.',
+                section: 'mqtt',
+                sectionLabel: 'MQTT',
+                package: null,
+                default: false,
+            );
+
+            $registry->registerField(
+                key: 'mqtt_periodic_update_frequency_seconds',
+                label: 'MQTT Periodic Update Frequency (Seconds)',
+                type: 'integer',
+                description: 'Republish interval for unchanged state when periodic updates are enabled.',
+                section: 'mqtt',
+                sectionLabel: 'MQTT',
+                package: null,
+                default: 60,
+            );
+
+            $registry->registerField(
                 key: 'supervisor.auto_rebuild',
                 label: 'Supervisor Auto Rebuild',
                 type: 'boolean',

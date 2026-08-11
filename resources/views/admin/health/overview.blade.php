@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+@section('meta-page-title', 'Health Overview')
 
 @section('content')
     @php($hasSerialDevicesRoute = \Illuminate\Support\Facades\Route::has('admin.serial-devices'))

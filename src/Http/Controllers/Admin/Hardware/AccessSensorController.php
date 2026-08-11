@@ -70,7 +70,7 @@ class AccessSensorController extends Controller
         $sensor = Sensor::create($validated);
         $this->syncSensorBindings($sensor, $inputBindings);
 
-        app(AccessControlMqttPublisher::class)->publishSensorState($sensor);
+        app(AccessControlMqttPublisher::class)->publishSensorState($sensor, ['force' => true]);
 
         return redirect()->route('admin.access-sensors.index')->with('status', 'Sensor created successfully.');
     }
@@ -95,6 +95,12 @@ class AccessSensorController extends Controller
                 'channel' => $binding->channel,
                 'signal_reversed' => (bool) $binding->signal_reversed,
                 'enabled' => (bool) $binding->enabled,
+                'mqtt_periodic_updates_enabled' => is_bool(data_get(is_array($binding->config) ? $binding->config : [], 'mqtt_periodic_updates_enabled'))
+                    ? (data_get(is_array($binding->config) ? $binding->config : [], 'mqtt_periodic_updates_enabled') ? '1' : '0')
+                    : 'inherit',
+                'mqtt_periodic_update_frequency_seconds' => is_numeric(data_get(is_array($binding->config) ? $binding->config : [], 'mqtt_periodic_update_frequency_seconds'))
+                    ? (int) data_get(is_array($binding->config) ? $binding->config : [], 'mqtt_periodic_update_frequency_seconds')
+                    : null,
                 'config_json' => (string) json_encode($binding->config ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
             ])
             ->values()
@@ -120,7 +126,7 @@ class AccessSensorController extends Controller
         $sensor->update($validated);
         $this->syncSensorBindings($sensor->fresh(), $inputBindings);
 
-        app(AccessControlMqttPublisher::class)->publishSensorState($sensor);
+        app(AccessControlMqttPublisher::class)->publishSensorState($sensor, ['force' => true]);
 
         return redirect()->route('admin.access-sensors.index')->with('status', 'Sensor updated successfully.');
     }
@@ -227,6 +233,20 @@ class AccessSensorController extends Controller
                     ]);
                 }
                 $config = $decoded;
+            }
+
+            $periodicMode = strtolower(trim((string) ($row['mqtt_periodic_updates_enabled'] ?? 'inherit')));
+            if (in_array($periodicMode, ['1', '0'], true)) {
+                $config['mqtt_periodic_updates_enabled'] = $periodicMode === '1';
+            } else {
+                unset($config['mqtt_periodic_updates_enabled']);
+            }
+
+            $periodicFrequencyRaw = trim((string) ($row['mqtt_periodic_update_frequency_seconds'] ?? ''));
+            if ($periodicFrequencyRaw !== '' && is_numeric($periodicFrequencyRaw)) {
+                $config['mqtt_periodic_update_frequency_seconds'] = max(1, (int) $periodicFrequencyRaw);
+            } else {
+                unset($config['mqtt_periodic_update_frequency_seconds']);
             }
 
             $normalized[] = [

@@ -82,6 +82,36 @@
         <div id="channel_help" class="form-text">For Modbus: input bindings read DI channels; output bindings write relay coil channels. Use numeric channel (1-based) or addr:&lt;address&gt;.</div>
     </div>
 
+    @php
+        $bindingConfig = is_array($accessBinding?->config ?? null) ? $accessBinding->config : [];
+        $periodicEnabledValue = old('mqtt_periodic_updates_enabled');
+        if ($periodicEnabledValue === null) {
+            $periodicEnabled = data_get($bindingConfig, 'mqtt_periodic_updates_enabled');
+            $periodicEnabledValue = is_bool($periodicEnabled) ? ($periodicEnabled ? '1' : '0') : 'inherit';
+        }
+
+        $periodicFrequencyValue = old('mqtt_periodic_update_frequency_seconds');
+        if ($periodicFrequencyValue === null) {
+            $periodicFrequency = data_get($bindingConfig, 'mqtt_periodic_update_frequency_seconds');
+            $periodicFrequencyValue = is_numeric($periodicFrequency) ? (string) ((int) $periodicFrequency) : '';
+        }
+    @endphp
+
+    <div class="col-md-3">
+        <label for="mqtt_periodic_updates_enabled" class="form-label">Periodic Updates</label>
+        <select class="form-select" id="mqtt_periodic_updates_enabled" name="mqtt_periodic_updates_enabled">
+            <option value="inherit" @selected((string) $periodicEnabledValue === 'inherit')>Inherit Global</option>
+            <option value="1" @selected((string) $periodicEnabledValue === '1')>Enabled</option>
+            <option value="0" @selected((string) $periodicEnabledValue === '0')>Disabled</option>
+        </select>
+    </div>
+
+    <div class="col-md-3">
+        <label for="mqtt_periodic_update_frequency_seconds" class="form-label">Periodic Frequency (s)</label>
+        <input type="number" min="1" class="form-control" id="mqtt_periodic_update_frequency_seconds" name="mqtt_periodic_update_frequency_seconds" value="{{ $periodicFrequencyValue }}" placeholder="e.g. 60">
+        <div class="form-text">Used only when periodic updates are enabled.</div>
+    </div>
+
     <div class="col-md-3">
         <label for="signal_reversed" class="form-label">Signal Reversed</label>
         <select class="form-select" id="signal_reversed" name="signal_reversed" required>

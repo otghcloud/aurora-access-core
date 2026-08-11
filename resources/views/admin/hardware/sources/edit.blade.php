@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+@section('meta-page-title', 'Edit Access Source ' . $accessSource->name)
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-4">
