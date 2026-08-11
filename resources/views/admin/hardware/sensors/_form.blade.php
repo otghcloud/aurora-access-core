@@ -43,3 +43,5 @@
     <input type="hidden" id="config_json" name="config_json" value="{{ $configJson }}">
     <input type="hidden" id="metadata_json" name="metadata_json" value="{{ $metadataJson }}">
 </div>
+
+@include('admin.hardware.sensors._bindings_form')

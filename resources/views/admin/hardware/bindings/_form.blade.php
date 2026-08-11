@@ -11,6 +11,12 @@
 
     $selectedTargetType = old('target_type', $accessBinding?->target_type ?? 'reader');
     $selectedTargetId = (string) old('target_id', $accessBinding?->target_id ?? '');
+    $inputActionOptions = $inputActionOptions ?? \OTGH\AccessControl\Core\Enums\AccessControl\AccessBindingActionKey::options('input');
+    $outputActionOptions = \OTGH\AccessControl\Core\Enums\AccessControl\AccessBindingActionKey::options('output');
+    $sensorInputActionOptions = $sensorInputActionOptions ?? array_values(array_filter(
+        $inputActionOptions,
+        static fn (array $option): bool => ($option['value'] ?? null) === \OTGH\AccessControl\Core\Enums\AccessControl\AccessBindingActionKey::SENSOR_STATE->value,
+    ));
 @endphp
 
 <div class="row g-3">
@@ -100,6 +106,7 @@
     (() => {
         const directionEl = document.getElementById('direction');
         const adapterTypeEl = document.getElementById('adapter_type');
+        const actionKeyEl = document.getElementById('action_key');
         const channelEl = document.getElementById('channel');
         const channelHelpEl = document.getElementById('channel_help');
         const targetTypeEl = document.getElementById('target_type');
@@ -109,6 +116,9 @@
         }
 
         const selectedTargetId = @json($selectedTargetId);
+        const inputActionOptions = @json($inputActionOptions);
+        const outputActionOptions = @json($outputActionOptions);
+        const sensorInputActionOptions = @json($sensorInputActionOptions);
         const optionsByType = {
             reader: @json($readerTargets->map(fn($item) => ['id' => (string) $item->id, 'label' => $item->name.' ('.$item->identifier.')'])->values()->all()),
             lock: @json($lockTargets->map(fn($item) => ['id' => (string) $item->id, 'label' => $item->name.' ('.$item->identifier.')'])->values()->all()),
@@ -164,6 +174,50 @@
             channelHelpEl.textContent = 'Use adapter-specific channel/tag value. For Modbus, use numeric channel (1-based) or addr:<address>.';
         };
 
+        const currentSelectedAction = () => {
+            if (!actionKeyEl) {
+                return '';
+            }
+
+            return String(actionKeyEl.value || '');
+        };
+
+        const renderActionOptions = () => {
+            if (!actionKeyEl || !directionEl || !targetTypeEl) {
+                return;
+            }
+
+            const previous = currentSelectedAction();
+            const direction = (directionEl.value || '').toLowerCase();
+            const targetType = (targetTypeEl.value || '').toLowerCase();
+
+            let options = [];
+            if (direction === 'output') {
+                options = outputActionOptions;
+            } else if (targetType === 'sensor') {
+                options = sensorInputActionOptions;
+            } else {
+                options = inputActionOptions;
+            }
+
+            actionKeyEl.innerHTML = '';
+
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Select action';
+            actionKeyEl.appendChild(placeholder);
+
+            for (const option of options) {
+                const opt = document.createElement('option');
+                opt.value = String(option.value);
+                opt.textContent = `${option.key} - ${option.label}`;
+                if (opt.value === previous) {
+                    opt.selected = true;
+                }
+                actionKeyEl.appendChild(opt);
+            }
+        };
+
         targetTypeEl.addEventListener('change', () => {
             while (targetIdEl.firstChild) {
                 targetIdEl.removeChild(targetIdEl.firstChild);
@@ -180,12 +234,16 @@
                 }
                 targetIdEl.appendChild(opt);
             });
+
+            renderActionOptions();
         });
 
         directionEl?.addEventListener('change', updateChannelHelp);
         adapterTypeEl?.addEventListener('change', updateChannelHelp);
+        directionEl?.addEventListener('change', renderActionOptions);
 
         renderTargetOptions();
         updateChannelHelp();
+        renderActionOptions();
     })();
 </script>

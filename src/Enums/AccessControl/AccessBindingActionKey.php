@@ -9,6 +9,7 @@ enum AccessBindingActionKey: int
     case EXIT_REQUEST = 3;
     case DOORBELL = 4;
     case EMERGENCY_EXIT_REQUEST = 5;
+    case SENSOR_STATE = 6;
 
     public function key(): string
     {
@@ -18,6 +19,7 @@ enum AccessBindingActionKey: int
             self::EXIT_REQUEST => 'ExitRequest',
             self::DOORBELL => 'Doorbell',
             self::EMERGENCY_EXIT_REQUEST => 'EmergencyExitRequest',
+            self::SENSOR_STATE => 'SensorState',
         };
     }
 
@@ -29,6 +31,7 @@ enum AccessBindingActionKey: int
             self::EXIT_REQUEST => 'Exit Request',
             self::DOORBELL => 'Doorbell',
             self::EMERGENCY_EXIT_REQUEST => 'Emergency Exit Request',
+            self::SENSOR_STATE => 'Sensor State',
         };
     }
 
@@ -38,6 +41,7 @@ enum AccessBindingActionKey: int
             self::EXIT_REQUEST,
             self::DOORBELL,
             self::EMERGENCY_EXIT_REQUEST,
+            self::SENSOR_STATE,
         ], true);
     }
 
@@ -126,6 +130,7 @@ enum AccessBindingActionKey: int
             'exitrequest' => self::EXIT_REQUEST,
             'doorbell' => self::DOORBELL,
             'emergencyexitrequest' => self::EMERGENCY_EXIT_REQUEST,
+            'sensorstate' => self::SENSOR_STATE,
             default => null,
         };
     }

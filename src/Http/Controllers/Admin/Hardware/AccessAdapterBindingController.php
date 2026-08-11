@@ -237,6 +237,26 @@ class AccessAdapterBindingController extends Controller
             ]);
         }
 
+        if ($validated['target_type'] === 'sensor') {
+            if ($validated['direction'] !== 'input') {
+                throw ValidationException::withMessages([
+                    'direction' => 'Sensor bindings must use input direction.',
+                ]);
+            }
+
+            if ($resolvedAction !== AccessBindingActionKey::SENSOR_STATE) {
+                throw ValidationException::withMessages([
+                    'action_key' => 'Sensor bindings must use SensorState action key.',
+                ]);
+            }
+        }
+
+        if ($validated['target_type'] !== 'sensor' && $resolvedAction === AccessBindingActionKey::SENSOR_STATE) {
+            throw ValidationException::withMessages([
+                'action_key' => 'SensorState action key is only valid for sensor targets.',
+            ]);
+        }
+
         $this->assertTargetExists($validated['target_type'], (int) $validated['target_id']);
 
         return [
@@ -308,6 +328,8 @@ class AccessAdapterBindingController extends Controller
      */
     private function formData(?AdapterBinding $binding = null): array
     {
+        $inputActionOptions = AccessBindingActionKey::options('input');
+
         return [
             'accessBinding' => $binding,
             'accessSources' => Source::query()->orderBy('name')->get(['id', 'name', 'identifier', 'type']),
@@ -317,6 +339,11 @@ class AccessAdapterBindingController extends Controller
             'switchTargets' => PhysicalSwitch::query()->orderBy('name')->get(['id', 'name', 'identifier']),
             'sensorTargets' => Sensor::query()->orderBy('name')->get(['id', 'name', 'identifier']),
             'actionOptions' => AccessBindingActionKey::options(),
+            'inputActionOptions' => $inputActionOptions,
+            'sensorInputActionOptions' => array_values(array_filter(
+                $inputActionOptions,
+                static fn (array $option): bool => ($option['value'] ?? null) === AccessBindingActionKey::SENSOR_STATE->value,
+            )),
             'adapterTypeOptions' => app(AccessControlCapabilityRegistry::class)->bindingAdapterOptions(),
         ];
     }

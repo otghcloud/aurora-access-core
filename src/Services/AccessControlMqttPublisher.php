@@ -179,7 +179,7 @@ class AccessControlMqttPublisher
     /**
      * @param  array<string,mixed>  $payload
      */
-    private function publishPayload(?string $connectionName, string $topic, array $payload, Reader $reader, bool $retain = true): void
+    private function publishPayload(?string $connectionName, string $topic, array $payload, Reader|Sensor $device, bool $retain = true): void
     {
         $config = $this->resolveConnectionConfig($connectionName);
         $mqtt = $this->makeClient($config);
@@ -199,14 +199,22 @@ class AccessControlMqttPublisher
             }
         }
 
-        Log::info($retain ? 'mqtt.state.published' : 'mqtt.event.published', [
-            'reader_id' => $reader->id,
-            'reader_identifier' => $reader->identifier,
+        $context = [
             'topic' => $topic,
             'payload' => $payload,
             'retained' => $retain,
             'connection' => $connectionName ?: 'default',
-        ]);
+        ];
+
+        if ($device instanceof Reader) {
+            $context['reader_id'] = $device->id;
+            $context['reader_identifier'] = $device->identifier;
+        } else {
+            $context['sensor_id'] = $device->id;
+            $context['sensor_identifier'] = $device->identifier;
+        }
+
+        Log::info($retain ? 'mqtt.state.published' : 'mqtt.event.published', $context);
     }
 
     /**

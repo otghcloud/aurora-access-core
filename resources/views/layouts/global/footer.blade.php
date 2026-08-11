@@ -9,7 +9,7 @@
 			<div class="col-12 col-lg-auto mt-3 mt-lg-0">
 				<ul class="list-inline list-inline-dots mb-0">
 					<li class="list-inline-item">
-						&copy; {{ date('Y') }} <a class="link-secondary" href="/">Aurora Technologies (OTGH) Ltd</a>
+						&copy; {{ date('Y') }} <a class="link-secondary" href="/">Aurora Technology (OTGH) Ltd</a>
 					</li>
 				</ul>
 			</div>
@@ -17,7 +17,7 @@
 
 		<div class="row">
 			<div class="col-12 col-lg-auto mt-3">
-				<p>Aurora Technologies (OTGH)s Ltd</p>
+				<p>Aurora Technology (OTGH) Ltd</p>
 			</div>
 		</div>
 
