@@ -77,6 +77,13 @@ validate_email() {
   fi
 }
 
+normalize_secret_value() {
+  local value="$1"
+  value="${value//$'\r'/}"
+  value="${value//$'\n'/}"
+  printf '%s' "$value"
+}
+
 init_prompt_input() {
   if [[ "$NON_INTERACTIVE" == "true" ]]; then
     return
@@ -225,8 +232,12 @@ set_env_value() {
     $value = $argv[3];
 
     $contents = file_exists($file) ? file_get_contents($file) : "";
-    $lines = $contents === "" ? [] : preg_split("/\r\n|\n|\r/", $contents);
+    $contents = str_replace(["\r\n", "\r"], "\n", $contents);
+    $lines = $contents === "" ? [] : explode("\n", $contents);
     $updated = false;
+
+    // Environment entries must stay single-line values.
+    $value = str_replace(["\r", "\n"], "", $value);
 
     foreach ($lines as $index => $line) {
       if (str_starts_with($line, $key . "=")) {
@@ -239,7 +250,8 @@ set_env_value() {
       $lines[] = $key . "=" . $value;
     }
 
-    file_put_contents($file, rtrim(implode(PHP_EOL, $lines), PHP_EOL) . PHP_EOL);
+    $normalized = array_values(array_filter($lines, static fn ($line) => $line !== ""));
+    file_put_contents($file, implode("\n", $normalized) . "\n");
   ' "$env_file" "$key" "$value"
 }
 
@@ -277,6 +289,39 @@ has_personal_access_tokens_table() {
 
     exit(Illuminate\Support\Facades\Schema::hasTable("personal_access_tokens") ? 0 : 1);
   '
+}
+
+verify_admin_password_hash() {
+  local email="$1"
+  local password="$2"
+
+  php -r '
+    require "vendor/autoload.php";
+
+    $app = require "bootstrap/app.php";
+    $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+    $kernel->bootstrap();
+
+    $email = $argv[1];
+    $password = $argv[2];
+    $userModelClass = config("auth.providers.users.model");
+
+    if (!is_string($userModelClass) || !class_exists($userModelClass)) {
+      exit(3);
+    }
+
+    $user = $userModelClass::query()->where("email", $email)->first();
+    if (!$user) {
+      exit(2);
+    }
+
+    $storedHash = method_exists($user, "getAuthPassword") ? (string) $user->getAuthPassword() : (string) ($user->password ?? "");
+    if ($storedHash === "") {
+      exit(4);
+    }
+
+    exit(Illuminate\Support\Facades\Hash::check($password, $storedHash) ? 0 : 1);
+  ' "$email" "$password"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -432,6 +477,8 @@ if [[ "${#admin_password}" -lt 8 ]]; then
   fail "Admin password must be at least 8 characters"
 fi
 
+admin_password="$(normalize_secret_value "$admin_password")"
+
 log_step "Creating Laravel host app in $TARGET_DIR"
 composer create-project laravel/laravel "$TARGET_DIR"
 
@@ -532,11 +579,17 @@ if ! has_personal_access_tokens_table; then
 fi
 
 log_step "Creating initial admin user"
+export AURORA_INITIAL_ADMIN_PASSWORD="$admin_password"
 php artisan app:create-initial-admin-user \
   --name="$admin_name" \
   --email="$admin_email" \
-  --password="$admin_password" \
+  --password-env="AURORA_INITIAL_ADMIN_PASSWORD" \
   --update-existing
+unset AURORA_INITIAL_ADMIN_PASSWORD
+
+if ! verify_admin_password_hash "$admin_email" "$admin_password"; then
+  fail "Initial admin password verification failed. The user was created but password hash check did not pass."
+fi
 
 log_step "Installing frontend dependencies"
 npm install --ignore-scripts

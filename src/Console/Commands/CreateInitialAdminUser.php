@@ -19,6 +19,7 @@ class CreateInitialAdminUser extends Command
                             {--name= : Initial admin full name}
                             {--email= : Initial admin email}
                             {--password= : Initial admin password}
+                            {--password-env=AURORA_INITIAL_ADMIN_PASSWORD : Environment variable name to read password from when --password is omitted}
                             {--update-existing : Update an existing user with matching email}';
 
     /**
@@ -35,7 +36,14 @@ class CreateInitialAdminUser extends Command
     {
         $name = (string) $this->option('name');
         $email = (string) $this->option('email');
-        $password = (string) $this->option('password');
+        $password = $this->normalizePassword((string) $this->option('password'));
+
+        if ($password === '') {
+            $passwordEnv = trim((string) $this->option('password-env'));
+            if ($passwordEnv !== '') {
+                $password = $this->normalizePassword((string) env($passwordEnv, ''));
+            }
+        }
 
         if ($name === '' && $this->input->isInteractive()) {
             $name = (string) $this->ask('Initial admin name');
@@ -46,7 +54,7 @@ class CreateInitialAdminUser extends Command
         }
 
         if ($password === '' && $this->input->isInteractive()) {
-            $password = (string) $this->secret('Initial admin password (minimum 8 characters)');
+            $password = $this->normalizePassword((string) $this->secret('Initial admin password (minimum 8 characters)'));
         }
 
         $validation = Validator::make([
@@ -107,5 +115,11 @@ class CreateInitialAdminUser extends Command
         $this->info(sprintf('Created initial admin user: %s', $email));
 
         return self::SUCCESS;
+    }
+
+    private function normalizePassword(string $value): string
+    {
+        // Remove accidental CR/LF characters from piped/TTY inputs while preserving spaces.
+        return str_replace(["\r", "\n"], '', $value);
     }
 }
