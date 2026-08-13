@@ -2,6 +2,7 @@
 
 namespace OTGH\AccessControl\Core\Services\AccessControl;
 
+use Illuminate\Database\Eloquent\Collection;
 use OTGH\AccessControl\Core\Enums\AccessControl\AccessEventStatus;
 use OTGH\AccessControl\Core\Jobs\ProcessReaderEvent;
 use OTGH\AccessControl\Core\Jobs\PublishReaderEvent;
@@ -9,7 +10,9 @@ use OTGH\AccessControl\Core\Jobs\PulseReaderFeedbackState;
 use OTGH\AccessControl\Core\Models\Access\AreaPermission;
 use OTGH\AccessControl\Core\Models\Access\Card;
 use OTGH\AccessControl\Core\Models\Access\Event;
+use OTGH\AccessControl\Core\Models\Hardware\Lock;
 use OTGH\AccessControl\Core\Models\Hardware\Reader;
+use OTGH\AccessControl\Core\Models\Hardware\ReaderLockBinding;
 
 class HandleAccessRequest
 {
@@ -44,21 +47,49 @@ class HandleAccessRequest
             $reason = null;
         }
 
-        $event = Event::create([
-            'access_card_id' => $accessCard?->id,
-            'access_area_id' => $accessReader?->area_id,
-            'access_lock_id' => $accessReader?->area?->primaryLock()?->id,
-            'user_id' => $accessCard?->user_id,
-            'card_number' => $normalizedCardNumber,
-            'origin_type' => 'reader',
-            'origin_id' => $accessReader?->id,
-            'origin_label' => $accessReader?->name ?? $readerIdentifier,
-            'granted' => $status === AccessEventStatus::SUCCESS,
-            'status' => $status,
-            'reason' => $reason,
-            'metadata' => null,
-            'ip_address' => $ipAddress,
-        ]);
+        // Get target locks from reader bindings, with fallback to area's primary lock
+        $targetLocks = $this->getTargetLocksForReader($accessReader);
+
+        // If we have target locks, create an event for each; otherwise create one event with no lock
+        if ($targetLocks->isNotEmpty()) {
+            $events = [];
+            foreach ($targetLocks as $targetLock) {
+                $event = Event::create([
+                    'access_card_id' => $accessCard?->id,
+                    'access_area_id' => $accessReader?->area_id,
+                    'access_lock_id' => $targetLock->id,
+                    'user_id' => $accessCard?->user_id,
+                    'card_number' => $normalizedCardNumber,
+                    'origin_type' => 'reader',
+                    'origin_id' => $accessReader?->id,
+                    'origin_label' => $accessReader?->name ?? $readerIdentifier,
+                    'granted' => $status === AccessEventStatus::SUCCESS,
+                    'status' => $status,
+                    'reason' => $reason,
+                    'metadata' => null,
+                    'ip_address' => $ipAddress,
+                ]);
+                $events[] = $event;
+            }
+            // Use the first event as the primary event for the response
+            $event = $events[0];
+        } else {
+            $event = Event::create([
+                'access_card_id' => $accessCard?->id,
+                'access_area_id' => $accessReader?->area_id,
+                'access_lock_id' => null,
+                'user_id' => $accessCard?->user_id,
+                'card_number' => $normalizedCardNumber,
+                'origin_type' => 'reader',
+                'origin_id' => $accessReader?->id,
+                'origin_label' => $accessReader?->name ?? $readerIdentifier,
+                'granted' => $status === AccessEventStatus::SUCCESS,
+                'status' => $status,
+                'reason' => $reason,
+                'metadata' => null,
+                'ip_address' => $ipAddress,
+            ]);
+        }
 
         if ($status === AccessEventStatus::SUCCESS) {
             ProcessReaderEvent::dispatch($accessCard, $accessReader);
@@ -74,27 +105,80 @@ class HandleAccessRequest
             ->where('identifier', $readerIdentifier)
             ->first();
 
-        $event = Event::create([
-            'access_card_id' => null,
-            'access_area_id' => $accessReader?->area_id,
-            'access_lock_id' => $accessReader?->area?->primaryLock()?->id,
-            'user_id' => null,
-            'card_number' => null,
-            'origin_type' => 'reader',
-            'origin_id' => $accessReader?->id,
-            'origin_label' => $accessReader?->name ?? $readerIdentifier,
-            'granted' => true,
-            'status' => AccessEventStatus::DOORBELL_PRESSED,
-            'reason' => null,
-            'metadata' => $metadata,
-            'ip_address' => $ipAddress,
-        ]);
+        // Get target locks from reader bindings, with fallback to area's primary lock
+        $targetLocks = $this->getTargetLocksForReader($accessReader);
+
+        if ($targetLocks->isNotEmpty()) {
+            $events = [];
+            foreach ($targetLocks as $targetLock) {
+                $event = Event::create([
+                    'access_card_id' => null,
+                    'access_area_id' => $accessReader?->area_id,
+                    'access_lock_id' => $targetLock->id,
+                    'user_id' => null,
+                    'card_number' => null,
+                    'origin_type' => 'reader',
+                    'origin_id' => $accessReader?->id,
+                    'origin_label' => $accessReader?->name ?? $readerIdentifier,
+                    'granted' => true,
+                    'status' => AccessEventStatus::DOORBELL_PRESSED,
+                    'reason' => null,
+                    'metadata' => $metadata,
+                    'ip_address' => $ipAddress,
+                ]);
+                $events[] = $event;
+            }
+            // Use the first event as the primary event for the response
+            $event = $events[0];
+        } else {
+            $event = Event::create([
+                'access_card_id' => null,
+                'access_area_id' => $accessReader?->area_id,
+                'access_lock_id' => null,
+                'user_id' => null,
+                'card_number' => null,
+                'origin_type' => 'reader',
+                'origin_id' => $accessReader?->id,
+                'origin_label' => $accessReader?->name ?? $readerIdentifier,
+                'granted' => true,
+                'status' => AccessEventStatus::DOORBELL_PRESSED,
+                'reason' => null,
+                'metadata' => $metadata,
+                'ip_address' => $ipAddress,
+            ]);
+        }
 
         if ($accessReader) {
             PublishReaderEvent::dispatch($accessReader, AccessEventStatus::DOORBELL_PRESSED->key());
         }
 
         return new AccessRequestResult(AccessEventStatus::DOORBELL_PRESSED, null, null, $accessReader, $event);
+    }
+
+    /**
+     * Get target locks for a reader using ReaderLockBinding, with fallback to area's primary lock.
+     *
+     * @return Collection<int, Lock>
+     */
+    private function getTargetLocksForReader(?Reader $reader): Collection
+    {
+        if (! $reader) {
+            return collect();
+        }
+
+        // First, try to get locks from reader bindings
+        $lockBindings = $reader->lockBindings()
+            ->where('enabled', true)
+            ->get();
+
+        if ($lockBindings->isNotEmpty()) {
+            return $lockBindings->pluck('lock')->filter();
+        }
+
+        // Fallback to area's primary lock (backward compatibility)
+        $primaryLock = $reader->area?->primaryLock();
+
+        return $primaryLock ? collect([$primaryLock]) : collect();
     }
 
     private function isUserAllowedForReader(Card $accessCard, Reader $accessReader, AccessEventStatus &$status, ?string &$reason): bool

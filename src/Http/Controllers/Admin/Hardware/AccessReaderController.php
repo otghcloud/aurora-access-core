@@ -151,6 +151,13 @@ class AccessReaderController extends Controller
         return redirect()->route('admin.access-readers.index')->with('status', 'Access reader updated successfully.');
     }
 
+    public function editLockBindings(Reader $reader): View
+    {
+        return view('admin.hardware.readers.lock_bindings', [
+            'accessReader' => $reader,
+        ]);
+    }
+
     public function editBindings(Reader $reader): View
     {
         $inputBindings = AdapterBinding::query()

@@ -5,6 +5,7 @@ namespace OTGH\AccessControl\Core\Models\Access;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use OTGH\AccessControl\Core\Models\BaseModel;
 use OTGH\AccessControl\Core\Models\Hardware\AdapterBinding;
+use OTGH\AccessControl\Core\Models\Hardware\Light;
 use OTGH\AccessControl\Core\Models\Hardware\Lock;
 use OTGH\AccessControl\Core\Models\Hardware\PhysicalSwitch;
 use OTGH\AccessControl\Core\Models\Hardware\Reader;
@@ -61,6 +62,11 @@ class Area extends BaseModel
     public function sensors(): HasMany
     {
         return $this->hasMany(Sensor::class, 'area_id');
+    }
+
+    public function lights(): HasMany
+    {
+        return $this->hasMany(Light::class, 'area_id');
     }
 
     public function permissions(): HasMany

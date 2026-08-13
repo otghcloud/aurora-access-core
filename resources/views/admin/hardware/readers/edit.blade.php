@@ -4,7 +4,11 @@
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0">Edit Access Reader</h1>
-        <a href="{{ route('admin.access-readers.index') }}" class="btn btn-outline-secondary">Back</a>
+        <div>
+            <a href="{{ route('admin.access-readers.lock-bindings.edit', $accessReader) }}" class="btn btn-outline-info btn-sm">Lock Bindings</a>
+            <a href="{{ route('admin.access-readers.bindings.edit', $accessReader) }}" class="btn btn-outline-info btn-sm">Adapter Bindings</a>
+            <a href="{{ route('admin.access-readers.index') }}" class="btn btn-outline-secondary">Back</a>
+        </div>
     </div>
 
     <div class="card shadow-sm">

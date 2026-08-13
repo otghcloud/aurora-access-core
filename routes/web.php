@@ -57,6 +57,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::prefix('hardware')->name('access-')->group(function () {
         Route::get('locks/{lock}/bindings', [AccessLockController::class, 'editBindings'])->name('locks.bindings.edit');
         Route::put('locks/{lock}/bindings', [AccessLockController::class, 'updateBindings'])->name('locks.bindings.update');
+        Route::get('readers/{reader}/lock-bindings', [AccessReaderController::class, 'editLockBindings'])->name('readers.lock-bindings.edit');
         Route::get('readers/{reader}/bindings', [AccessReaderController::class, 'editBindings'])->name('readers.bindings.edit');
         Route::put('readers/{reader}/bindings', [AccessReaderController::class, 'updateBindings'])->name('readers.bindings.update');
         Route::resource('bindings', AccessAdapterBindingController::class)->except(['show']);

@@ -4,6 +4,7 @@ namespace OTGH\AccessControl\Core\Models\Hardware;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use OTGH\AccessControl\Core\Models\Access\Area;
 use OTGH\AccessControl\Core\Models\Access\Event;
 use OTGH\AccessControl\Core\Models\BaseModel;
@@ -57,6 +58,23 @@ class Reader extends BaseModel
     {
         return $this->hasMany(AdapterBinding::class, 'target_id')
             ->where('target_type', 'reader');
+    }
+
+    public function lockBindings(): HasMany
+    {
+        return $this->hasMany(ReaderLockBinding::class, 'reader_id');
+    }
+
+    public function targetLocks(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Lock::class,
+            ReaderLockBinding::class,
+            'reader_id',
+            'id',
+            'id',
+            'lock_id'
+        );
     }
 
     public function mqttReaderSlug(): string

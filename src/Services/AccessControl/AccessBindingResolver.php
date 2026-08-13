@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Schema;
 use OTGH\AccessControl\Core\Enums\AccessControl\AccessBindingActionKey;
 use OTGH\AccessControl\Core\Models\Hardware\AdapterBinding;
 use OTGH\AccessControl\Core\Models\Hardware\Reader;
+use OTGH\AccessControl\Core\Models\Hardware\ReaderLockBinding;
 
 class AccessBindingResolver
 {
@@ -17,8 +18,20 @@ class AccessBindingResolver
         if ($this->bindingsTableExists()) {
             $bindings = [];
 
-            $area = $reader->area;
-            $roomLockIds = $area?->locks()->pluck('id')->all() ?? [];
+            // First, try to get target locks from ReaderLockBinding
+            $readerLockBindings = ReaderLockBinding::query()
+                ->where('reader_id', $reader->id)
+                ->where('enabled', true)
+                ->pluck('lock_id')
+                ->all();
+
+            // If no explicit bindings, fall back to area's primary lock
+            if ($readerLockBindings === []) {
+                $primaryLock = $reader->area?->primaryLock();
+                $roomLockIds = $primaryLock ? [$primaryLock->id] : [];
+            } else {
+                $roomLockIds = $readerLockBindings;
+            }
 
             if ($roomLockIds !== []) {
                 $lockBindings = AdapterBinding::query()
