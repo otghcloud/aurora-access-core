@@ -165,10 +165,12 @@ class HAWebhookController
     {
         Event::create([
             'access_lock_id' => $lock->id,
-            'status' => 'ha_lock_requested',
+            'status' => 'api_lock_requested',
             'origin_type' => 'ha_webhook',
             'reason' => $reason,
             'metadata' => [
+                'source' => 'home_assistant',
+                'event' => 'lock_requested',
                 'lock_id' => $lock->id,
                 'lock_identifier' => $lock->identifier,
             ],
@@ -201,10 +203,12 @@ class HAWebhookController
     {
         Event::create([
             'access_lock_id' => $lock->id,
-            'status' => 'ha_unlock_requested',
+            'status' => 'api_unlock_requested',
             'origin_type' => 'ha_webhook',
             'reason' => $reason,
             'metadata' => [
+                'source' => 'home_assistant',
+                'event' => 'unlock_requested',
                 'lock_id' => $lock->id,
                 'lock_identifier' => $lock->identifier,
             ],
@@ -264,10 +268,12 @@ class HAWebhookController
 
         Event::create([
             'access_light_id' => $light->id,
-            'status' => 'ha_light_on_requested',
+            'status' => 'success',
             'origin_type' => 'ha_webhook',
             'reason' => 'Home Assistant command',
             'metadata' => [
+                'source' => 'home_assistant',
+                'event' => 'light_on_requested',
                 'light_id' => $light->id,
                 'brightness' => $brightness ? (int) $brightness : null,
             ],
@@ -302,10 +308,12 @@ class HAWebhookController
 
         Event::create([
             'access_light_id' => $light->id,
-            'status' => 'ha_light_off_requested',
+            'status' => 'success',
             'origin_type' => 'ha_webhook',
             'reason' => 'Home Assistant command',
             'metadata' => [
+                'source' => 'home_assistant',
+                'event' => 'light_off_requested',
                 'light_id' => $light->id,
             ],
             'ip_address' => request()->ip(),
@@ -338,10 +346,12 @@ class HAWebhookController
 
         Event::create([
             'access_light_id' => $light->id,
-            'status' => 'ha_light_brightness_set',
+            'status' => 'success',
             'origin_type' => 'ha_webhook',
             'reason' => 'Home Assistant command',
             'metadata' => [
+                'source' => 'home_assistant',
+                'event' => 'light_brightness_set',
                 'light_id' => $light->id,
                 'brightness' => $brightness,
             ],
@@ -380,10 +390,12 @@ class HAWebhookController
 
         Event::create([
             'access_light_id' => $light->id,
-            'status' => 'ha_light_color_set',
+            'status' => 'success',
             'origin_type' => 'ha_webhook',
             'reason' => 'Home Assistant command',
             'metadata' => [
+                'source' => 'home_assistant',
+                'event' => 'light_color_set',
                 'light_id' => $light->id,
                 'color' => $color,
             ],
