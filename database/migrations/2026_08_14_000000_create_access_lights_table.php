@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('access_lights', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('area_id')->constrained('access_areas')->cascadeOnDelete();
+            $table->foreignId('area_id')->constrained('areas')->cascadeOnDelete();
             $table->string('name');
             $table->string('identifier')->unique();
             $table->boolean('state')->default(false);
