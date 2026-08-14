@@ -79,6 +79,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::prefix('management')->name('system-')->group(function () {
         Route::resource('users', SystemUserController::class)->except(['show']);
         Route::post('users/{user}/tokens', [SystemUserController::class, 'storeToken'])->name('users.tokens.store');
+        Route::put('users/{user}/tokens/{token}', [SystemUserController::class, 'updateToken'])->name('users.tokens.update');
         Route::delete('users/{user}/tokens/{token}', [SystemUserController::class, 'destroyToken'])->name('users.tokens.destroy');
     });
 

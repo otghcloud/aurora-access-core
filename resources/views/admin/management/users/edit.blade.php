@@ -52,7 +52,15 @@
                 <div class="card-body">
                     @forelse ($tokens as $token)
                         <div class="border rounded p-3 mb-2">
-                            <div class="fw-semibold">{{ $token->name }}</div>
+                            <form method="POST" action="{{ route('admin.system-users.tokens.update', [$systemUser, $token]) }}" class="mb-2">
+                                @csrf
+                                @method('PUT')
+                                <label for="token_name_{{ $token->id }}" class="form-label">Token Name</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="token_name_{{ $token->id }}" name="token_name" value="{{ $token->name }}" required maxlength="255">
+                                    <button type="submit" class="btn btn-outline-primary">Update</button>
+                                </div>
+                            </form>
                             <div class="small text-muted">Created: {{ $token->created_at?->format('d/m/Y H:i:s') }}</div>
                             <div class="small text-muted">Last Used: {{ $token->last_used_at?->format('d/m/Y H:i:s') ?? 'Never' }}</div>
                             <form method="POST" action="{{ route('admin.system-users.tokens.destroy', [$systemUser, $token]) }}" class="mt-2">

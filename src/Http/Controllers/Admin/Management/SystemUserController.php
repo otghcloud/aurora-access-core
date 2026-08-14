@@ -90,6 +90,10 @@ class SystemUserController extends Controller
                 ->withErrors(['You cannot delete your own account while logged in.']);
         }
 
+        if ($this->sanctumTokensTableExists()) {
+            $user->tokens()->delete();
+        }
+
         $user->delete();
 
         return redirect()->route('admin.system-users.index')
@@ -112,6 +116,27 @@ class SystemUserController extends Controller
         return redirect()->route('admin.system-users.edit', $user)
             ->with('status', 'API token created successfully. Save it now; it will not be shown again.')
             ->with('new_api_token', $token->plainTextToken);
+    }
+
+    public function updateToken(Request $request, User $user, PersonalAccessToken $token): RedirectResponse
+    {
+        if (! $this->sanctumTokensTableExists()) {
+            return redirect()->route('admin.system-users.edit', $user)
+                ->withErrors(['Sanctum token storage is unavailable. Run database migrations and try again.']);
+        }
+
+        if ((int) $token->tokenable_id !== (int) $user->id || $token->tokenable_type !== User::class) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'token_name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $token->update(['name' => $validated['token_name']]);
+
+        return redirect()->route('admin.system-users.edit', $user)
+            ->with('status', 'API token updated successfully.');
     }
 
     public function destroyToken(User $user, PersonalAccessToken $token): RedirectResponse
