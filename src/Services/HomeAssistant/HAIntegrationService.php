@@ -241,8 +241,11 @@ class HAIntegrationService
             'unique_id' => 'aurora_lock_'.$lock->id,
             'name' => $lock->name,
             'identifier' => $lock->identifier,
-            'state' => $lock->state['state'] ?? 'unknown',
-            'available' => $lock->state['confidence'] ?? 'low' !== 'low',
+            // Lock state is not persisted on the lock record yet. Keep the entity
+            // available so commands can be used while state remains unknown.
+            'state' => 'unknown',
+            'available' => true,
+            'confidence' => 'low',
             'updated_at' => $lock->updated_at->toIso8601String(),
         ];
     }

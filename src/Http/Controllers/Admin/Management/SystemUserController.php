@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Laravel\Sanctum\PersonalAccessToken;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
+use OTGH\AccessControl\Core\Models\Access\Individual;
 use OTGH\AccessControl\Core\Models\User;
 
 class SystemUserController extends Controller
@@ -38,7 +39,9 @@ class SystemUserController extends Controller
 
     public function create(): View
     {
-        return view('admin.management.users.create');
+        return view('admin.management.users.create', [
+            'accessIndividuals' => Individual::query()->orderBy('name')->get(['id', 'name']),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -47,6 +50,7 @@ class SystemUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'access_individual_id' => ['nullable', 'integer', Rule::exists('individuals', 'id')],
         ]);
 
         User::create($validated);
@@ -59,6 +63,7 @@ class SystemUserController extends Controller
     {
         return view('admin.management.users.edit', [
             'systemUser' => $user,
+            'accessIndividuals' => Individual::query()->orderBy('name')->get(['id', 'name']),
             'tokens' => $this->sanctumTokensTableExists()
                 ? $user->tokens()->latest('id')->get()
                 : collect(),
@@ -71,6 +76,7 @@ class SystemUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'access_individual_id' => ['nullable', 'integer', Rule::exists('individuals', 'id')],
         ]);
 
         if (($validated['password'] ?? null) === null || $validated['password'] === '') {
