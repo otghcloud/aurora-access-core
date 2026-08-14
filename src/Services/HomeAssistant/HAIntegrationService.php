@@ -7,6 +7,7 @@ use OTGH\AccessControl\Core\Models\Hardware\Light;
 use OTGH\AccessControl\Core\Models\Hardware\Lock;
 use OTGH\AccessControl\Core\Models\Hardware\Sensor;
 use OTGH\AccessControl\Core\Services\AccessControl\LockStateStore;
+use OTGH\AccessControl\Core\Support\AccessControlMqttTopic;
 
 class HAIntegrationService
 {
@@ -227,8 +228,8 @@ class HAIntegrationService
             'identifier' => $area->identifier,
             'updated_at' => $area->updated_at->toIso8601String(),
             'devices' => [
-                'locks' => $area->locks->map(fn (Lock $lock) => $this->buildLockStatusForHA($lock))->toArray(),
-                'sensors' => $area->sensors->map(fn (Sensor $sensor) => $this->buildSensorStatusForHA($sensor))->toArray(),
+                'locks' => $area->locks->map(fn (Lock $lock) => $this->buildLockStatusForHA($lock, $area))->toArray(),
+                'sensors' => $area->sensors->map(fn (Sensor $sensor) => $this->buildSensorStatusForHA($sensor, $area))->toArray(),
                 'lights' => $area->lights()->with('area')->get()->map(fn (Light $light) => $this->buildLightStatusForHA($light))->toArray(),
             ],
         ];
@@ -237,7 +238,7 @@ class HAIntegrationService
     /**
      * Build lock status for HA
      */
-    public function buildLockStatusForHA(Lock $lock): array
+    public function buildLockStatusForHA(Lock $lock, ?Area $area = null): array
     {
         $state = $this->lockStateStore->forLock($lock);
 
@@ -251,13 +252,14 @@ class HAIntegrationService
             'confidence' => $state['confidence'],
             'updated_at' => $state['updated_at'] ?? $lock->updated_at->toIso8601String(),
             'state_source' => $state['source'],
+            'state_topic' => AccessControlMqttTopic::areaBaseTopic($area ?? $lock->area).'/state',
         ];
     }
 
     /**
      * Build sensor status for HA
      */
-    public function buildSensorStatusForHA(Sensor $sensor): array
+    public function buildSensorStatusForHA(Sensor $sensor, ?Area $area = null): array
     {
         return [
             'id' => (string) $sensor->id,
@@ -269,6 +271,7 @@ class HAIntegrationService
             'available' => true,
             'device_class' => $this->getDeviceClassForSensor($sensor),
             'updated_at' => $sensor->updated_at->toIso8601String(),
+            'state_topic' => AccessControlMqttTopic::areaBaseTopic($area ?? $sensor->area).'/sensor/'.$sensor->identifier,
         ];
     }
 
