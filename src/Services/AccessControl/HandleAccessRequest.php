@@ -163,7 +163,7 @@ class HandleAccessRequest
     private function getTargetLocksForReader(?Reader $reader): Collection
     {
         if (! $reader) {
-            return collect();
+            return new Collection;
         }
 
         // First, try to get locks from reader bindings
@@ -172,13 +172,13 @@ class HandleAccessRequest
             ->get();
 
         if ($lockBindings->isNotEmpty()) {
-            return $lockBindings->pluck('lock')->filter();
+            return new Collection($lockBindings->pluck('lock')->filter()->values()->all());
         }
 
         // Fallback to area's primary lock (backward compatibility)
         $primaryLock = $reader->area?->primaryLock();
 
-        return $primaryLock ? collect([$primaryLock]) : collect();
+        return $primaryLock ? new Collection([$primaryLock]) : new Collection;
     }
 
     private function isUserAllowedForReader(Card $accessCard, Reader $accessReader, AccessEventStatus &$status, ?string &$reason): bool
