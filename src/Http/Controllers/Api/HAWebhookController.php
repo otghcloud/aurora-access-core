@@ -40,6 +40,7 @@ class HAWebhookController
             'device_id' => 'required|string',
             'action' => 'required|string',
             'area_id' => 'required|integer',
+            'code' => 'nullable|string',
             'value' => 'nullable|string|max:255',
         ]);
 
