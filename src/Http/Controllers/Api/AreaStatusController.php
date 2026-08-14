@@ -6,7 +6,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Models\Access\Area;
-use OTGH\AccessControl\Core\Models\Access\AreaPermission;
 use OTGH\AccessControl\Core\Models\Access\Event;
 use OTGH\AccessControl\Core\Services\AccessControl\StatusAggregatorService;
 
@@ -90,14 +89,7 @@ class AreaStatusController extends Controller
             abort(401, 'Unauthenticated');
         }
 
-        // Check if user has permission for this area
-        $hasPermission = AreaPermission::query()
-            ->where('individual_id', $user->id)
-            ->where('area_id', $areaId)
-            ->where('permission', 'allow')
-            ->exists();
-
-        if (! $hasPermission) {
+        if (! $user->hasAreaPermission($areaId)) {
             abort(403, 'User does not have permission to access this area');
         }
     }

@@ -12,6 +12,7 @@ use OTGH\AccessControl\Core\Models\Hardware\Reader;
 use OTGH\AccessControl\Core\Services\AccessControl\AccessOutputOrchestrator;
 use OTGH\AccessControl\Core\Services\AccessControl\AutolockSettingsResolver;
 use OTGH\AccessControl\Core\Services\AccessControl\ExpectedLockStateStore;
+use OTGH\AccessControl\Core\Services\AccessControl\LockStateStore;
 use OTGH\AccessControl\Core\Services\AccessControlMqttPublisher;
 use Throwable;
 
@@ -46,6 +47,7 @@ class ProcessReaderEvent implements ShouldQueue
         AutolockSettingsResolver $autolockSettingsResolver,
         AccessControlMqttPublisher $mqttPublisher,
         ExpectedLockStateStore $expectedLockStateStore,
+        LockStateStore $lockStateStore,
     ): void {
         Log::info('process_reader_event.start', [
             'reader_id' => $this->accessReader->id,
@@ -99,6 +101,7 @@ class ProcessReaderEvent implements ShouldQueue
 
         $persistedReader = $this->accessReader->fresh() ?? $this->accessReader;
         $expectedLockStateStore->storeExpectedLockPower($persistedReader, $newValue, $this->determineEventSource());
+        $lockStateStore->storeForReader($persistedReader, $newValue, $this->determineEventSource());
 
         $mqttPublisher->publishReaderState($this->accessReader, $newValue);
 

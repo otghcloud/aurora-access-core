@@ -14,6 +14,7 @@ class StatusAggregatorService
         private readonly AutolockSettingsResolver $autolockResolver,
         private readonly LockStatusResolver $lockStatusResolver,
         private readonly AccessBindingResolver $bindingResolver,
+        private readonly LockStateStore $lockStateStore,
     ) {}
 
     /**
@@ -136,12 +137,13 @@ class StatusAggregatorService
      */
     private function resolveLockStateForStatus(Lock $lock): array
     {
-        // This would ideally query actual lock state from adapters
-        // For now, return a simple state representation
+        $state = $this->lockStateStore->forLock($lock);
+
         return [
-            'state' => 'unknown', // locked|unlocked|unknown
-            'last_updated' => now()->toIso8601String(),
-            'confidence' => 'low', // low|medium|high - based on how recent the state update is
+            'state' => $state['state'],
+            'last_updated' => $state['updated_at'] ?? now()->toIso8601String(),
+            'confidence' => $state['confidence'],
+            'source' => $state['source'],
         ];
     }
 

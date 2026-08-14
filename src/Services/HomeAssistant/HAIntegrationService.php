@@ -6,9 +6,12 @@ use OTGH\AccessControl\Core\Models\Access\Area;
 use OTGH\AccessControl\Core\Models\Hardware\Light;
 use OTGH\AccessControl\Core\Models\Hardware\Lock;
 use OTGH\AccessControl\Core\Models\Hardware\Sensor;
+use OTGH\AccessControl\Core\Services\AccessControl\LockStateStore;
 
 class HAIntegrationService
 {
+    public function __construct(private readonly LockStateStore $lockStateStore) {}
+
     /**
      * Build Home Assistant device object for a lock
      */
@@ -236,17 +239,18 @@ class HAIntegrationService
      */
     public function buildLockStatusForHA(Lock $lock): array
     {
+        $state = $this->lockStateStore->forLock($lock);
+
         return [
             'id' => (string) $lock->id,
             'unique_id' => 'aurora_lock_'.$lock->id,
             'name' => $lock->name,
             'identifier' => $lock->identifier,
-            // Lock state is not persisted on the lock record yet. Keep the entity
-            // available so commands can be used while state remains unknown.
-            'state' => 'unknown',
+            'state' => $state['state'],
             'available' => true,
-            'confidence' => 'low',
-            'updated_at' => $lock->updated_at->toIso8601String(),
+            'confidence' => $state['confidence'],
+            'updated_at' => $state['updated_at'] ?? $lock->updated_at->toIso8601String(),
+            'state_source' => $state['source'],
         ];
     }
 

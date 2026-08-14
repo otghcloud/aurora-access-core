@@ -171,12 +171,15 @@ class HAWebhookController
             'ip_address' => request()->ip(),
         ]);
 
-        // Queue lock command
-        dispatch(new ProcessReaderEvent(
-            lockId: $lock->id,
-            action: 'lock',
-            originType: 'ha_webhook',
-        ));
+        $reader = $lock->area?->readers()->first();
+
+        if ($reader === null) {
+            return response()->json([
+                'error' => 'No reader is configured for this lock area',
+            ], 409);
+        }
+
+        ProcessReaderEvent::dispatch(null, $reader, 1, false, 'ha_webhook');
 
         return response()->json([
             'success' => true,
@@ -204,12 +207,15 @@ class HAWebhookController
             'ip_address' => request()->ip(),
         ]);
 
-        // Queue unlock command
-        dispatch(new ProcessReaderEvent(
-            lockId: $lock->id,
-            action: 'unlock',
-            originType: 'ha_webhook',
-        ));
+        $reader = $lock->area?->readers()->first();
+
+        if ($reader === null) {
+            return response()->json([
+                'error' => 'No reader is configured for this lock area',
+            ], 409);
+        }
+
+        ProcessReaderEvent::dispatch(null, $reader, 0, false, 'ha_webhook');
 
         return response()->json([
             'success' => true,
