@@ -2,7 +2,10 @@
 
 namespace OTGH\AccessControl\Core\Providers;
 
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
@@ -219,6 +222,10 @@ class AccessCoreServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('api', function (Request $request): Limit {
+            return Limit::perMinute(60)->by($request->ip());
+        });
+
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->registerLivewireComponents();
 
