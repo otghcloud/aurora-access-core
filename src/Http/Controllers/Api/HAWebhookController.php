@@ -4,12 +4,15 @@ namespace OTGH\AccessControl\Core\Http\Controllers\Api;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use OTGH\AccessControl\Core\Jobs\ProcessLightEvent;
 use OTGH\AccessControl\Core\Jobs\ProcessReaderEvent;
 use OTGH\AccessControl\Core\Models\Access\Area;
 use OTGH\AccessControl\Core\Models\Access\Event;
 use OTGH\AccessControl\Core\Models\Hardware\Light;
 use OTGH\AccessControl\Core\Models\Hardware\Lock;
+use OTGH\AccessControl\Core\Models\Hardware\Reader;
+use OTGH\AccessControl\Core\Models\Hardware\ReaderLockBinding;
 use OTGH\AccessControl\Core\Models\Hardware\Sensor;
 use OTGH\AccessControl\Core\Services\HomeAssistant\HAIntegrationService;
 
@@ -171,7 +174,7 @@ class HAWebhookController
             'ip_address' => request()->ip(),
         ]);
 
-        $reader = $lock->area?->readers()->first();
+        $reader = $this->readerForLock($lock);
 
         if ($reader === null) {
             return response()->json([
@@ -207,7 +210,7 @@ class HAWebhookController
             'ip_address' => request()->ip(),
         ]);
 
-        $reader = $lock->area?->readers()->first();
+        $reader = $this->readerForLock($lock);
 
         if ($reader === null) {
             return response()->json([
@@ -222,6 +225,27 @@ class HAWebhookController
             'lock' => $lock->identifier,
             'action' => 'unlock',
         ]);
+    }
+
+    private function readerForLock(Lock $lock): ?Reader
+    {
+        if (Schema::hasTable('reader_lock_bindings')) {
+            $reader = ReaderLockBinding::query()
+                ->where('lock_id', $lock->id)
+                ->where('enabled', true)
+                ->with('reader')
+                ->orderBy('id')
+                ->get()
+                ->pluck('reader')
+                ->filter()
+                ->first();
+
+            if ($reader !== null) {
+                return $reader;
+            }
+        }
+
+        return $lock->area?->readers()->orderBy('id')->first();
     }
 
     /**
