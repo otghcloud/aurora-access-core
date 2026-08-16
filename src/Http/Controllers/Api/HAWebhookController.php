@@ -14,14 +14,17 @@ use OTGH\AccessControl\Core\Models\Hardware\Lock;
 use OTGH\AccessControl\Core\Models\Hardware\Reader;
 use OTGH\AccessControl\Core\Models\Hardware\ReaderLockBinding;
 use OTGH\AccessControl\Core\Models\Hardware\Sensor;
+use OTGH\AccessControl\Core\Services\AccessControl\AutolockSettingsResolver;
 use OTGH\AccessControl\Core\Services\HomeAssistant\HAIntegrationService;
 
 class HAWebhookController
 {
     protected HAIntegrationService $haIntegration;
 
-    public function __construct(HAIntegrationService $haIntegration)
-    {
+    public function __construct(
+        HAIntegrationService $haIntegration,
+        private readonly AutolockSettingsResolver $autolockSettingsResolver,
+    ) {
         $this->haIntegration = $haIntegration;
     }
 
@@ -36,7 +39,7 @@ class HAWebhookController
     public function handleWebhook(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'type' => 'required|string|in:lock_command,light_command,sensor_query',
+            'type' => 'required|string|in:lock_command,light_command,sensor_query,autolock_command',
             'device_id' => 'required|string',
             'action' => 'required|string',
             'area_id' => 'required|integer',
@@ -52,6 +55,7 @@ class HAWebhookController
         try {
             return match ($validated['type']) {
                 'lock_command' => $this->handleLockCommand($request->user(), $validated),
+                'autolock_command' => $this->handleAutolockCommand($request, $validated),
                 'light_command' => $this->handleLightCommand($request->user(), $validated),
                 'sensor_query' => $this->handleSensorQuery($request->user(), $validated),
                 default => response()->json(['error' => 'Unknown command type'], 400),
@@ -93,6 +97,85 @@ class HAWebhookController
             'unlock' => $this->unlockDoor($user, $lock, 'Home Assistant command'),
             default => response()->json(['error' => 'Unknown lock action'], 400),
         };
+    }
+
+    protected function handleAutolockCommand(Request $request, array $data): JsonResponse
+    {
+        preg_match('/^aurora_lock_(\d+)$/', $data['device_id'], $matches);
+        $lockId = $matches[1] ?? null;
+
+        if (! $lockId) {
+            return response()->json(['error' => 'Invalid device ID'], 400);
+        }
+
+        $lock = Lock::query()->with('area')->findOrFail($lockId);
+        if ((int) $lock->area_id !== (int) $data['area_id']) {
+            return response()->json(['error' => 'Lock does not belong to the requested area'], 422);
+        }
+
+        if (! $request->user()->hasAreaPermission($lock->area_id)) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $current = $this->autolockSettingsResolver->resolveForAreaAndLock($lock->area, $lock);
+        $enabled = $current['enabled'];
+        $duration = min(3600, max(0, $current['duration']));
+
+        if ($data['action'] === 'set_enabled') {
+            $value = strtolower((string) ($data['value'] ?? ''));
+            if (! in_array($value, ['0', '1', 'false', 'true'], true)) {
+                return response()->json(['message' => 'The auto-lock enabled value must be boolean.'], 422);
+            }
+            $enabled = in_array($value, ['1', 'true'], true);
+        } elseif ($data['action'] === 'set_duration') {
+            $value = (string) ($data['value'] ?? '');
+            if (! preg_match('/^\d+$/', $value) || (int) $value > 3600) {
+                return response()->json(['message' => 'The auto-lock duration must be an integer between 0 and 3600 seconds.'], 422);
+            }
+            $duration = (int) $value;
+        } else {
+            return response()->json(['error' => 'Unknown auto-lock action'], 400);
+        }
+
+        $config = is_array($lock->config) ? $lock->config : [];
+        data_set($config, 'locking.autolock_override_enabled', $enabled);
+        data_set($config, 'locking.autolock_override_duration', $duration);
+        $lock->update(['config' => $config]);
+
+        Event::create([
+            'access_card_id' => null,
+            'access_area_id' => $lock->area_id,
+            'access_lock_id' => $lock->id,
+            'user_id' => $request->user()?->id,
+            'card_number' => null,
+            'origin_type' => 'ha_webhook',
+            'origin_id' => null,
+            'origin_label' => 'Home Assistant',
+            'granted' => true,
+            'status' => 'ha_autolock_updated',
+            'reason' => 'Auto-lock settings updated via Home Assistant.',
+            'metadata' => [
+                'source' => 'home_assistant',
+                'event' => 'autolock_updated',
+                'action' => $data['action'],
+                'lock_id' => $lock->id,
+                'autolock_enabled' => $enabled,
+                'autolock_duration' => $duration,
+                'autolock_scope' => 'lock_override',
+            ],
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'lock' => $lock->identifier,
+            'action' => $data['action'],
+            'autolock' => [
+                'enabled' => $enabled,
+                'duration_seconds' => $duration,
+                'source' => 'lock_override',
+            ],
+        ]);
     }
 
     /**

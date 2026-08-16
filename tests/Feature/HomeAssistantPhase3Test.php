@@ -106,6 +106,29 @@ class HomeAssistantPhase3Test extends TestCase
         $this->assertEquals($this->area->name, $areaData['name']);
     }
 
+    public function test_ha_status_includes_resolved_autolock_settings()
+    {
+        $this->area->update([
+            'config' => ['locking' => ['autolock_enabled' => true, 'autolock_duration' => 45]],
+        ]);
+
+        $this->getJson('/api/ha/status')
+            ->assertOk()
+            ->assertJsonPath('areas.0.devices.locks.0.autolock.enabled', true)
+            ->assertJsonPath('areas.0.devices.locks.0.autolock.duration_seconds', 45)
+            ->assertJsonPath('areas.0.devices.locks.0.autolock.source', 'area_default');
+
+        $this->lock->update([
+            'config' => ['locking' => ['autolock_override_enabled' => false, 'autolock_override_duration' => 90]],
+        ]);
+
+        $this->getJson('/api/ha/status')
+            ->assertOk()
+            ->assertJsonPath('areas.0.devices.locks.0.autolock.enabled', false)
+            ->assertJsonPath('areas.0.devices.locks.0.autolock.duration_seconds', 90)
+            ->assertJsonPath('areas.0.devices.locks.0.autolock.source', 'lock_override');
+    }
+
     /**
      * Test GET /api/ha/status/{areaId} returns single area status
      */
@@ -234,6 +257,133 @@ class HomeAssistantPhase3Test extends TestCase
             'access_lock_id' => $this->lock->id,
             'status' => 'ha_unlock_requested',
         ]);
+    }
+
+    public function test_ha_webhook_updates_autolock_enabled_and_preserves_duration()
+    {
+        $this->area->update([
+            'config' => ['locking' => ['autolock_enabled' => false, 'autolock_duration' => 30]],
+        ]);
+
+        $response = $this->postJson('/api/ha/webhook', [
+            'type' => 'autolock_command',
+            'device_id' => 'aurora_lock_'.$this->lock->id,
+            'action' => 'set_enabled',
+            'area_id' => $this->area->id,
+            'value' => '1',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('autolock.enabled', true)
+            ->assertJsonPath('autolock.duration_seconds', 30)
+            ->assertJsonPath('autolock.source', 'lock_override');
+
+        $this->lock->refresh();
+        $this->assertTrue((bool) data_get($this->lock->config, 'locking.autolock_override_enabled'));
+        $this->assertSame(30, (int) data_get($this->lock->config, 'locking.autolock_override_duration'));
+        $this->assertDatabaseHas('events', [
+            'access_lock_id' => $this->lock->id,
+            'status' => 'ha_autolock_updated',
+            'origin_type' => 'ha_webhook',
+        ]);
+    }
+
+    public function test_ha_webhook_updates_autolock_duration_and_preserves_enabled_state()
+    {
+        $this->area->update([
+            'config' => ['locking' => ['autolock_enabled' => true, 'autolock_duration' => 15]],
+        ]);
+
+        $this->postJson('/api/ha/webhook', [
+            'type' => 'autolock_command',
+            'device_id' => 'aurora_lock_'.$this->lock->id,
+            'action' => 'set_duration',
+            'area_id' => $this->area->id,
+            'value' => '3600',
+        ])->assertOk()
+            ->assertJsonPath('autolock.enabled', true)
+            ->assertJsonPath('autolock.duration_seconds', 3600);
+
+        $this->lock->refresh();
+        $this->assertTrue((bool) data_get($this->lock->config, 'locking.autolock_override_enabled'));
+        $this->assertSame(3600, (int) data_get($this->lock->config, 'locking.autolock_override_duration'));
+    }
+
+    public function test_ha_webhook_accepts_zero_autolock_duration()
+    {
+        $this->postJson('/api/ha/webhook', [
+            'type' => 'autolock_command',
+            'device_id' => 'aurora_lock_'.$this->lock->id,
+            'action' => 'set_duration',
+            'area_id' => $this->area->id,
+            'value' => '0',
+        ])->assertOk()
+            ->assertJsonPath('autolock.duration_seconds', 0);
+
+        $this->lock->refresh();
+        $this->assertSame(0, (int) data_get($this->lock->config, 'locking.autolock_override_duration'));
+    }
+
+    public function test_ha_webhook_rejects_autolock_cross_area_device()
+    {
+        $otherArea = Area::create([
+            'name' => 'Other Area',
+            'identifier' => 'other_area_'.uniqid(),
+        ]);
+        AreaPermission::create([
+            'individual_id' => $this->user->id,
+            'area_id' => $otherArea->id,
+            'permission' => 'allow',
+        ]);
+
+        $this->postJson('/api/ha/webhook', [
+            'type' => 'autolock_command',
+            'device_id' => 'aurora_lock_'.$this->lock->id,
+            'action' => 'set_enabled',
+            'area_id' => $otherArea->id,
+            'value' => '1',
+        ])->assertUnprocessable();
+
+        $this->assertDatabaseMissing('events', ['status' => 'ha_autolock_updated']);
+    }
+
+    public function test_ha_webhook_validates_autolock_commands()
+    {
+        foreach (['-1', '3601', '1.5', 'invalid'] as $value) {
+            $this->postJson('/api/ha/webhook', [
+                'type' => 'autolock_command',
+                'device_id' => 'aurora_lock_'.$this->lock->id,
+                'action' => 'set_duration',
+                'area_id' => $this->area->id,
+                'value' => $value,
+            ])->assertUnprocessable();
+        }
+
+        $this->postJson('/api/ha/webhook', [
+            'type' => 'autolock_command',
+            'device_id' => 'aurora_lock_'.$this->lock->id,
+            'action' => 'set_enabled',
+            'area_id' => $this->area->id,
+            'value' => 'yes',
+        ])->assertUnprocessable();
+
+        $this->postJson('/api/ha/webhook', [
+            'type' => 'autolock_command',
+            'device_id' => 'aurora_lock_'.$this->lock->id,
+            'action' => 'unknown',
+            'area_id' => $this->area->id,
+            'value' => '1',
+        ])->assertBadRequest();
+
+        $this->postJson('/api/ha/webhook', [
+            'type' => 'autolock_command',
+            'device_id' => 'invalid',
+            'action' => 'set_enabled',
+            'area_id' => $this->area->id,
+            'value' => '1',
+        ])->assertBadRequest();
+
+        $this->assertDatabaseMissing('events', ['status' => 'ha_autolock_updated']);
     }
 
     /**

@@ -6,12 +6,16 @@ use OTGH\AccessControl\Core\Models\Access\Area;
 use OTGH\AccessControl\Core\Models\Hardware\Light;
 use OTGH\AccessControl\Core\Models\Hardware\Lock;
 use OTGH\AccessControl\Core\Models\Hardware\Sensor;
+use OTGH\AccessControl\Core\Services\AccessControl\AutolockSettingsResolver;
 use OTGH\AccessControl\Core\Services\AccessControl\LockStateStore;
 use OTGH\AccessControl\Core\Support\AccessControlMqttTopic;
 
 class HAIntegrationService
 {
-    public function __construct(private readonly LockStateStore $lockStateStore) {}
+    public function __construct(
+        private readonly LockStateStore $lockStateStore,
+        private readonly AutolockSettingsResolver $autolockSettingsResolver,
+    ) {}
 
     /**
      * Build Home Assistant device object for a lock
@@ -241,6 +245,7 @@ class HAIntegrationService
     public function buildLockStatusForHA(Lock $lock, ?Area $area = null): array
     {
         $state = $this->lockStateStore->forLock($lock);
+        $autolock = $this->autolockSettingsResolver->resolveForAreaAndLock($area ?? $lock->area, $lock);
 
         return [
             'id' => (string) $lock->id,
@@ -253,6 +258,11 @@ class HAIntegrationService
             'updated_at' => $state['updated_at'] ?? $lock->updated_at->toIso8601String(),
             'state_source' => $state['source'],
             'state_topic' => AccessControlMqttTopic::areaBaseTopic($area ?? $lock->area).'/state',
+            'autolock' => [
+                'enabled' => $autolock['enabled'],
+                'duration_seconds' => min(3600, max(0, $autolock['duration'])),
+                'source' => $autolock['source'],
+            ],
         ];
     }
 
