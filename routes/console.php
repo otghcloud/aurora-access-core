@@ -9,6 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('app:sync-reader-mqtt-state')->everyFiveMinutes()->withoutOverlapping();
-Schedule::command('app:sync-opc-monitors')->everyMinute()->withoutOverlapping();
 Schedule::command('app:reconcile-reader-lock-state')->everyMinute()->withoutOverlapping();
 Schedule::command('app:health-access-control')->everyFiveMinutes()->withoutOverlapping();

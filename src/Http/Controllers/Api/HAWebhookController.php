@@ -4,6 +4,7 @@ namespace OTGH\AccessControl\Core\Http\Controllers\Api;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use OTGH\AccessControl\Core\Jobs\ProcessLightEvent;
 use OTGH\AccessControl\Core\Jobs\ProcessReaderEvent;
@@ -140,31 +141,34 @@ class HAWebhookController
         $config = is_array($lock->config) ? $lock->config : [];
         data_set($config, 'locking.autolock_override_enabled', $enabled);
         data_set($config, 'locking.autolock_override_duration', $duration);
-        $lock->update(['config' => $config]);
 
-        Event::create([
-            'access_card_id' => null,
-            'access_area_id' => $lock->area_id,
-            'access_lock_id' => $lock->id,
-            'user_id' => $request->user()?->id,
-            'card_number' => null,
-            'origin_type' => 'ha_webhook',
-            'origin_id' => null,
-            'origin_label' => 'Home Assistant',
-            'granted' => true,
-            'status' => 'ha_autolock_updated',
-            'reason' => 'Auto-lock settings updated via Home Assistant.',
-            'metadata' => [
-                'source' => 'home_assistant',
-                'event' => 'autolock_updated',
-                'action' => $data['action'],
-                'lock_id' => $lock->id,
-                'autolock_enabled' => $enabled,
-                'autolock_duration' => $duration,
-                'autolock_scope' => 'lock_override',
-            ],
-            'ip_address' => $request->ip(),
-        ]);
+        DB::transaction(function () use ($lock, $config, $request, $data, $enabled, $duration): void {
+            $lock->update(['config' => $config]);
+
+            Event::create([
+                'access_card_id' => null,
+                'access_area_id' => $lock->area_id,
+                'access_lock_id' => $lock->id,
+                'user_id' => $request->user()?->id,
+                'card_number' => null,
+                'origin_type' => 'ha_webhook',
+                'origin_id' => null,
+                'origin_label' => 'Home Assistant',
+                'granted' => true,
+                'status' => 'ha_autolock_updated',
+                'reason' => 'Auto-lock settings updated via Home Assistant.',
+                'metadata' => [
+                    'source' => 'home_assistant',
+                    'event' => 'autolock_updated',
+                    'action' => $data['action'],
+                    'lock_id' => $lock->id,
+                    'autolock_enabled' => $enabled,
+                    'autolock_duration' => $duration,
+                    'autolock_scope' => 'lock_override',
+                ],
+                'ip_address' => $request->ip(),
+            ]);
+        });
 
         return response()->json([
             'success' => true,
@@ -306,7 +310,7 @@ class HAWebhookController
             ], 409);
         }
 
-        ProcessReaderEvent::dispatch(null, $reader, 0, false, 'ha_webhook');
+        ProcessReaderEvent::dispatch(null, $reader, 0, true, 'ha_webhook');
 
         return response()->json([
             'success' => true,

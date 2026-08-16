@@ -2,7 +2,9 @@
 
 namespace OTGH\AccessControl\Core\Tests\Feature;
 
+use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
+use OTGH\AccessControl\Core\Jobs\ProcessReaderEvent;
 use OTGH\AccessControl\Core\Models\Access\Area;
 use OTGH\AccessControl\Core\Models\Access\AreaPermission;
 use OTGH\AccessControl\Core\Models\Access\Individual;
@@ -242,6 +244,8 @@ class HomeAssistantPhase3Test extends TestCase
      */
     public function test_ha_webhook_unlock_command()
     {
+        Queue::fake();
+
         $response = $this->postJson('/api/ha/webhook', [
             'type' => 'lock_command',
             'device_id' => 'aurora_lock_'.$this->lock->id,
@@ -257,6 +261,13 @@ class HomeAssistantPhase3Test extends TestCase
             'access_lock_id' => $this->lock->id,
             'status' => 'ha_unlock_requested',
         ]);
+
+        Queue::assertPushed(ProcessReaderEvent::class, function (ProcessReaderEvent $job): bool {
+            return $job->accessReader->area_id === $this->area->id
+                && $job->targetValue === 0
+                && $job->allowAutoRelock
+                && $job->eventSource === 'ha_webhook';
+        });
     }
 
     public function test_ha_webhook_updates_autolock_enabled_and_preserves_duration()

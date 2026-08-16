@@ -27,6 +27,7 @@ enum AccessEventStatus: int
     case API_AUTOLOCK_UPDATED = 21;
     case READER_FEEDBACK_FAILED = 22;
     case SUCCESS = 23;
+    case HA_AUTOLOCK_UPDATED = 24;
 
     public function key(): string
     {
@@ -54,6 +55,7 @@ enum AccessEventStatus: int
             self::API_AUTOLOCK_UPDATED => 'api_autolock_updated',
             self::READER_FEEDBACK_FAILED => 'reader_feedback_failed',
             self::SUCCESS => 'success',
+            self::HA_AUTOLOCK_UPDATED => 'ha_autolock_updated',
         };
     }
 
@@ -83,6 +85,7 @@ enum AccessEventStatus: int
             self::API_AUTOLOCK_UPDATED => 'Auto-Lock Updated (via API)',
             self::READER_FEEDBACK_FAILED => 'Reader Feedback Failed',
             self::SUCCESS => 'Credential Accepted',
+            self::HA_AUTOLOCK_UPDATED => 'Auto-Lock Updated (via Home Assistant)',
         };
     }
 
