@@ -1,5 +1,7 @@
 @extends('layouts.admin')
 @section('meta-page-title', 'Health Overview')
+@section('page-title', 'Health Overview')
+@section('page-pretitle', 'Diagnostics')
 
 @section('content')
     @php($hasSerialDevicesRoute = \Illuminate\Support\Facades\Route::has('admin.serial-devices'))
@@ -206,29 +208,45 @@
             <h2 class="h5 mb-0">Check Results</h2>
             <span class="badge text-bg-secondary">{{ count($health['checks']) }} checks</span>
         </div>
-        <div class="table-responsive">
-            <table class="table table-striped align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th scope="col">Check</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Details</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($health['checks'] as $check)
-                        <tr>
-                            <td class="fw-semibold">{{ $check['name'] }}</td>
-                            <td>
-                                <span class="badge text-bg-{{ $check['status'] === 'PASS' ? 'success' : ($check['status'] === 'WARN' ? 'warning' : 'danger') }}">
-                                    {{ $check['status'] }}
-                                </span>
-                            </td>
-                            <td class="small">{{ $check['details'] }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+        <div class="accordion accordion-flush" id="health-check-groups">
+            @foreach (($health['checks_by_type'] ?? []) as $type => $checks)
+                <div class="accordion-item">
+                    <h3 class="accordion-header" id="health-check-heading-{{ $loop->index }}">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#health-check-collapse-{{ $loop->index }}" aria-expanded="true" aria-controls="health-check-collapse-{{ $loop->index }}">
+                            {{ $type }}
+                            <span class="badge text-bg-secondary ms-2">{{ count($checks) }}</span>
+                        </button>
+                    </h3>
+                    <div id="health-check-collapse-{{ $loop->index }}" class="accordion-collapse collapse show" aria-labelledby="health-check-heading-{{ $loop->index }}">
+                        <div class="accordion-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Check</th>
+                                            <th scope="col">Status</th>
+                                            <th scope="col">Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($checks as $check)
+                                            <tr>
+                                                <td class="fw-semibold">{{ $check['name'] }}</td>
+                                                <td>
+                                                    <span class="badge text-bg-{{ $check['status'] === 'PASS' ? 'success' : ($check['status'] === 'WARN' ? 'warning' : 'danger') }}">
+                                                        {{ $check['status'] }}
+                                                    </span>
+                                                </td>
+                                                <td class="small">{{ $check['details'] }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
         </div>
     </div>
 

@@ -1,0 +1,1 @@
+import{t as e}from"./jquery-migrate.module-_Ojt7Zgw.js";window.$=e,window.jQuery=e;

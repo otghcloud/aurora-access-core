@@ -1,5 +1,7 @@
 @extends('layouts.admin')
 @section('meta-page-title', 'Access Users')
+@section('page-title', 'Users')
+@section('page-pretitle', 'Access')
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -9,39 +11,11 @@
 
     <div class="card shadow-sm">
         <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle">
-                <thead>
-                    <tr>
-                        <th scope="col">Name</th>
-                        <th scope="col">Cards</th>
-                        <th scope="col" class="text-end">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($accessUsers as $accessUser)
-                        <tr>
-                            <td>{{ $accessUser->name }}</td>
-                            <td>{{ $accessUser->cards_count }}</td>
-                            <td class="text-end">
-                                <a href="{{ route('admin.access-users.edit', $accessUser) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                <form method="POST" action="{{ route('admin.access-users.destroy', $accessUser) }}" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this user?')">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="3" class="text-center py-4 text-muted">No access users created yet.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            {{ $dataTable->table(['class' => 'table table-hover align-middle mb-0']) }}
         </div>
     </div>
-
-    <div class="mt-3">
-        {{ $accessUsers->links() }}
-    </div>
 @endsection
+
+@push('scripts')
+    {{ $dataTable->scripts(attributes: ['type' => 'module']) }}
+@endpush

@@ -1,28 +1,28 @@
 {
-  "_jquery-migrate.module-vgwjMFEJ.js": {
-    "file": "assets/jquery-migrate.module-vgwjMFEJ.js",
+  "_jquery-migrate.module-_Ojt7Zgw.js": {
+    "file": "assets/jquery-migrate.module-_Ojt7Zgw.js",
     "name": "jquery-migrate.module"
   },
   "packages/access-core/resources/js/admin.js": {
-    "file": "assets/admin-CaEMv6mB.js",
+    "file": "assets/admin-BAwMedP_.js",
     "name": "admin",
     "src": "packages/access-core/resources/js/admin.js",
     "isEntry": true,
     "imports": [
-      "_jquery-migrate.module-vgwjMFEJ.js"
+      "_jquery-migrate.module-_Ojt7Zgw.js"
     ]
   },
   "packages/access-core/resources/js/app.js": {
-    "file": "assets/app-CaEMv6mB.js",
+    "file": "assets/app-DJxohUY0.js",
     "name": "app",
     "src": "packages/access-core/resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_jquery-migrate.module-vgwjMFEJ.js"
+      "_jquery-migrate.module-_Ojt7Zgw.js"
     ]
   },
   "packages/access-core/resources/sass/admin.scss": {
-    "file": "assets/admin-Ddggl6QV.css",
+    "file": "assets/admin-CMj-LWGV.css",
     "name": "admin",
     "names": [
       "admin.css"

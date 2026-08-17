@@ -34,6 +34,7 @@ class AccessControlHealthService
      *     critical_failures: int,
      *     warnings: int,
      *     checks: array<int, array{name:string,status:string,details:string}>,
+     *     checks_by_type: array<string, array<int, array{name:string,status:string,details:string}>>,
      *     mqtt_sync: array<string,mixed>|null
      * }
      */
@@ -274,6 +275,7 @@ class AccessControlHealthService
             'critical_failures' => $failedChecks,
             'warnings' => count(array_filter($checks, fn (array $check): bool => $check['status'] === 'WARN')),
             'checks' => $checks,
+            'checks_by_type' => $this->groupChecksByType($checks),
             'mqtt_sync' => $syncStatus,
         ];
 
@@ -312,6 +314,37 @@ class AccessControlHealthService
             'status' => $status,
             'details' => $details,
         ];
+    }
+
+    /**
+     * @param  array<int, array{name:string,status:string,details:string}>  $checks
+     * @return array<string, array<int, array{name:string,status:string,details:string}>>
+     */
+    private function groupChecksByType(array $checks): array
+    {
+        $groups = [];
+
+        foreach ($checks as $check) {
+            $groups[$this->checkType((string) $check['name'])][] = $check;
+        }
+
+        return $groups;
+    }
+
+    private function checkType(string $name): string
+    {
+        $normalized = strtolower($name);
+
+        return match (true) {
+            str_starts_with($normalized, 'supervisor') => 'Supervisor',
+            str_contains($normalized, 'modbus') => 'Modbus',
+            str_contains($normalized, 'mqtt') => 'MQTT',
+            str_starts_with($normalized, 'serial reader') => 'Serial Reader',
+            str_contains($normalized, 'queue'),
+            str_contains($normalized, 'redis'),
+            str_contains($normalized, 'failed job') => 'Infrastructure',
+            default => 'External / Other',
+        };
     }
 
     /**

@@ -1,5 +1,7 @@
 @extends('layouts.admin')
 @section('meta-page-title', 'Access Cards')
+@section('page-title', 'Access Credentials')
+@section('page-pretitle', 'Access')
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-4">

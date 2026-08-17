@@ -1,5 +1,7 @@
 @extends('layouts.admin-base')
 @section('meta-page-title', 'Areas')
+@section('page-title', 'Areas')
+@section('page-pretitle', 'Access')
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-4">

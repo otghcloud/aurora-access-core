@@ -4,6 +4,7 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport" />
+		<meta content="{{ csrf_token() }}" name="csrf-token" />
 		<meta content="ie=edge" http-equiv="X-UA-Compatible" />
 		<title>@yield('meta-page-title') :: {{ config('app.name', 'Aurora Access Controller') }}</title>
 		<meta content="#662071" name="msapplication-TileColor" />

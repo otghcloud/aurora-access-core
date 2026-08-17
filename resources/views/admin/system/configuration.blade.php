@@ -1,5 +1,7 @@
 @extends('layouts.admin')
 @section('meta-page-title', 'Configuration')
+@section('page-title', 'Configuration')
+@section('page-pretitle', 'System')
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-4">

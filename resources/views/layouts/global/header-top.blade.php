@@ -18,7 +18,7 @@
 					</div>
 				</a>
 				<div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-					<a class="dropdown-item" href="/account">Settings</a>
+					<a class="dropdown-item" href="/admin/management/users/{{ Auth::user()->id }}/edit">Settings</a>
 					<form action="{{ route('logout') }}" method="POST">
 						@csrf
 						<button class="dropdown-item" type="submit">Logout</button>

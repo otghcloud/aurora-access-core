@@ -5,16 +5,15 @@ namespace OTGH\AccessControl\Core\Http\Controllers\Admin\Access;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use OTGH\AccessControl\Core\DataTables\Admin\AccessUsersDataTable;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Models\Access\Individual;
 
 class AccessUserController extends Controller
 {
-    public function index(): View
+    public function index(AccessUsersDataTable $dataTable)
     {
-        return view('admin.access.users.index', [
-            'accessUsers' => Individual::withCount('cards')->orderBy('name')->paginate(15),
-        ]);
+        return $dataTable->render('admin.access.users.index');
     }
 
     public function create(): View
