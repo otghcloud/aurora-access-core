@@ -4,13 +4,12 @@ namespace OTGH\AccessControl\Core\Http\Controllers\Admin\Access;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use OTGH\AccessControl\Core\DataTables\Admin\AccessAreasDataTable;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Jobs\ProcessReaderEvent;
 use OTGH\AccessControl\Core\Jobs\PublishLocksForReader;
@@ -22,58 +21,12 @@ use OTGH\AccessControl\Core\Models\Hardware\AdapterBinding;
 use OTGH\AccessControl\Core\Models\Hardware\Lock;
 use OTGH\AccessControl\Core\Models\Hardware\PhysicalSwitch;
 use OTGH\AccessControl\Core\Models\Hardware\Reader;
-use OTGH\AccessControl\Core\Services\AccessControl\LockStatusResolver;
 
 class AccessAreaController extends Controller
 {
-    public function index(): View
+    public function index(AccessAreasDataTable $dataTable)
     {
-        /** @var LengthAwarePaginator $areas */
-        $areas = Area::query()
-            ->with(['readers', 'locks', 'switches'])
-            ->withCount(['readers', 'locks', 'switches', 'permissions'])
-            ->latest('id')
-            ->paginate(20);
-
-        /** @var Collection<int, Area> $items */
-        $items = $areas->getCollection();
-
-        $areas->setCollection(
-            $items->map(function (Area $area): Area {
-                $primaryReader = $this->resolveAreaPrimaryReader($area);
-                $area->setAttribute('primary_reader', $primaryReader);
-                $area->setAttribute('primary_lock', $area->primaryLock());
-
-                $status = [
-                    'state' => 'unknown',
-                    'label' => 'Unknown',
-                    'badge' => 'secondary',
-                    'error' => null,
-                ];
-
-                if ($primaryReader !== null) {
-                    $resolved = app(LockStatusResolver::class)->resolve($primaryReader);
-                    $status = [
-                        'state' => $resolved['state'] ?? 'unknown',
-                        'label' => $resolved['label'] ?? 'Unknown',
-                        'badge' => $resolved['badge'] ?? 'secondary',
-                        'error' => $resolved['error'] ?? null,
-                    ];
-                }
-
-                $area->setAttribute('control', [
-                    'lock' => $status,
-                    'autolock_enabled' => $area->autolockEnabled(),
-                    'autolock_duration' => $area->autolockDuration(),
-                ]);
-
-                return $area;
-            })
-        );
-
-        return view('admin.access.areas.index', [
-            'accessAreas' => $areas,
-        ]);
+        return $dataTable->render('admin.access.areas.index');
     }
 
     public function lock(Request $request, Area $area): RedirectResponse

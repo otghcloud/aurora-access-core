@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use OTGH\AccessControl\Core\DataTables\Admin\AccessLocksDataTable;
 use OTGH\AccessControl\Core\Enums\AccessControl\AccessBindingActionKey;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Jobs\PublishLocksForReader;
@@ -26,14 +27,9 @@ use Throwable;
 
 class AccessLockController extends Controller
 {
-    public function index(): View
+    public function index(AccessLocksDataTable $dataTable)
     {
-        return view('admin.hardware.locks.index', [
-            'accessLocks' => Lock::query()
-                ->with(['area.readers'])
-                ->latest('id')
-                ->paginate(20),
-        ]);
+        return $dataTable->render('admin.hardware.locks.index');
     }
 
     public function show(Lock $lock): View

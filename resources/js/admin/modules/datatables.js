@@ -80,9 +80,20 @@ function bindFooterRelocationEvents() {
         });
 }
 
+function bindAdvancedSearch() {
+    $('body')
+        .off('input.auroraAccessDataTable', '#advanced-table-search')
+        .on('input.auroraAccessDataTable', '#advanced-table-search', function () {
+            const table = $('table.dataTable').first().DataTable();
+
+            table.search(this.value).draw();
+        });
+}
+
 export function initDataTables() {
     configureDataTableDefaults();
     bindFooterRelocationEvents();
+    bindAdvancedSearch();
 }
 
 export default initDataTables;

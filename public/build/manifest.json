@@ -4,7 +4,7 @@
     "name": "jquery-migrate.module"
   },
   "packages/access-core/resources/js/admin.js": {
-    "file": "assets/admin-BkVJ5tew.js",
+    "file": "assets/admin-CO5x2478.js",
     "name": "admin",
     "src": "packages/access-core/resources/js/admin.js",
     "isEntry": true,
@@ -22,7 +22,7 @@
     ]
   },
   "packages/access-core/resources/sass/admin.scss": {
-    "file": "assets/admin-CKyjAq9l.css",
+    "file": "assets/admin-CWWw6v3P.css",
     "name": "admin",
     "names": [
       "admin.css"

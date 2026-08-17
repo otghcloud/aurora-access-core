@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use OTGH\AccessControl\Core\DataTables\Admin\AdapterBindingsDataTable;
 use OTGH\AccessControl\Core\Enums\AccessControl\AccessBindingActionKey;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Models\Access\Area;
@@ -21,124 +22,11 @@ use OTGH\AccessControl\Core\Services\AccessControlMqttPublisher;
 
 class AccessAdapterBindingController extends Controller
 {
-    public function index(Request $request): View
+    public function index(AdapterBindingsDataTable $dataTable): View
     {
-        $query = AdapterBinding::query()->with('source');
-        $selectedAction = AccessBindingActionKey::fromStored($request->input('action_key'));
-
-        if ($request->filled('direction')) {
-            $query->where('direction', $request->string('direction')->toString());
-        }
-
-        if ($request->filled('adapter_type')) {
-            $adapterType = app(AccessControlCapabilityRegistry::class)
-                ->normalizeBindingAdapterType($request->string('adapter_type')->toString());
-
-            if ($adapterType !== null && $adapterType !== '') {
-                $query->where('adapter_type', $adapterType);
-            }
-        }
-
-        if ($request->filled('target_type')) {
-            $query->where('target_type', $request->string('target_type')->toString());
-        }
-
-        if ($request->filled('target_id')) {
-            $query->where('target_id', (int) $request->input('target_id'));
-        }
-
-        if ($request->filled('source_id')) {
-            $query->where('source_id', (int) $request->input('source_id'));
-        }
-
-        if ($request->filled('enabled')) {
-            $query->where('enabled', (bool) $request->boolean('enabled'));
-        }
-
-        if ($request->filled('action_key')) {
-            if ($selectedAction instanceof AccessBindingActionKey) {
-                $query->whereIn('action_key', $selectedAction->queryCandidates());
-            } else {
-                $query->whereRaw('1 = 0');
-            }
-        }
-
-        $bindings = $query->latest('id')->paginate(30)->withQueryString();
-
-        $readerIds = [];
-        $lockIds = [];
-        $areaIds = [];
-        $switchIds = [];
-        $sensorIds = [];
-
-        foreach ($bindings->items() as $binding) {
-            if ($binding->target_type === 'reader') {
-                $readerIds[] = (int) $binding->target_id;
-            }
-
-            if ($binding->target_type === 'lock') {
-                $lockIds[] = (int) $binding->target_id;
-            }
-
-            if ($binding->target_type === 'area') {
-                $areaIds[] = (int) $binding->target_id;
-            }
-
-            if ($binding->target_type === 'switch') {
-                $switchIds[] = (int) $binding->target_id;
-            }
-
-            if ($binding->target_type === 'sensor') {
-                $sensorIds[] = (int) $binding->target_id;
-            }
-        }
-
-        $readerMap = Reader::query()
-            ->whereIn('id', array_values(array_unique($readerIds)))
-            ->get(['id', 'name', 'identifier'])
-            ->mapWithKeys(fn (Reader $reader): array => [
-                'reader:'.$reader->id => $reader->name.' ('.$reader->identifier.')',
-            ])
-            ->all();
-
-        $lockMap = Lock::query()
-            ->whereIn('id', array_values(array_unique($lockIds)))
-            ->get(['id', 'name', 'identifier'])
-            ->mapWithKeys(fn (Lock $lock): array => [
-                'lock:'.$lock->id => $lock->name.' ('.$lock->identifier.')',
-            ])
-            ->all();
-
-        $areaMap = Area::query()
-            ->whereIn('id', array_values(array_unique($areaIds)))
-            ->get(['id', 'name', 'identifier'])
-            ->mapWithKeys(fn (Area $area): array => [
-                'area:'.$area->id => $area->name.' ('.$area->identifier.')',
-            ])
-            ->all();
-
-        $switchMap = PhysicalSwitch::query()
-            ->whereIn('id', array_values(array_unique($switchIds)))
-            ->get(['id', 'name', 'identifier'])
-            ->mapWithKeys(fn (PhysicalSwitch $switch): array => [
-                'switch:'.$switch->id => $switch->name.' ('.$switch->identifier.')',
-            ])
-            ->all();
-
-        $sensorMap = Sensor::query()
-            ->whereIn('id', array_values(array_unique($sensorIds)))
-            ->get(['id', 'name', 'identifier'])
-            ->mapWithKeys(fn (Sensor $sensor): array => [
-                'sensor:'.$sensor->id => $sensor->name.' ('.$sensor->identifier.')',
-            ])
-            ->all();
-
-        return view('admin.hardware.bindings.index', [
-            'bindings' => $bindings,
+        return $dataTable->render('admin.hardware.bindings.index', [
             'accessSources' => Source::query()->orderBy('name')->get(['id', 'name', 'type']),
             'actionOptions' => AccessBindingActionKey::options(),
-            'selectedActionKey' => $selectedAction?->value,
-            'targetLabels' => array_merge($readerMap, $lockMap, $areaMap, $switchMap, $sensorMap),
             'readerTargets' => Reader::query()->orderBy('name')->get(['id', 'name', 'identifier']),
             'lockTargets' => Lock::query()->orderBy('name')->get(['id', 'name', 'identifier']),
             'areaTargets' => Area::query()->orderBy('name')->get(['id', 'name', 'identifier']),

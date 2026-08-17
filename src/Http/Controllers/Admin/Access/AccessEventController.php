@@ -3,19 +3,16 @@
 namespace OTGH\AccessControl\Core\Http\Controllers\Admin\Access;
 
 use Illuminate\View\View;
+use OTGH\AccessControl\Core\DataTables\Admin\AccessEventsDataTable;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Models\Access\Event;
 use OTGH\AccessControl\Core\Models\Access\Individual;
 
 class AccessEventController extends Controller
 {
-    public function index(): View
+    public function index(AccessEventsDataTable $dataTable)
     {
-        return view('admin.access.events.index', [
-            'accessEvents' => Event::with(['accessUser', 'accessCard', 'originReader', 'accessArea', 'accessLock'])
-                ->latest('id')
-                ->paginate(30),
-        ]);
+        return $dataTable->render('admin.access.events.index');
     }
 
     public function show(Event $event): View

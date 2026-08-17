@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use OTGH\AccessControl\Core\DataTables\Admin\AccessSourcesDataTable;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Models\Hardware\Source;
 use OTGH\AccessControl\Core\Services\AccessControl\AccessControlCapabilityRegistry;
@@ -15,11 +16,9 @@ use Throwable;
 
 class AccessSourceController extends Controller
 {
-    public function index(): View
+    public function index(AccessSourcesDataTable $dataTable)
     {
-        return view('admin.hardware.sources.index', [
-            'accessSources' => Source::query()->latest('id')->paginate(20),
-        ]);
+        return $dataTable->render('admin.hardware.sources.index');
     }
 
     public function create(): View

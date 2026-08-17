@@ -9,32 +9,16 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Laravel\Sanctum\PersonalAccessToken;
+use OTGH\AccessControl\Core\DataTables\Admin\SystemUsersDataTable;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Models\Access\Individual;
 use OTGH\AccessControl\Core\Models\User;
 
 class SystemUserController extends Controller
 {
-    public function index(): View
+    public function index(SystemUsersDataTable $dataTable)
     {
-        $users = User::query()->orderBy('name')->paginate(20);
-
-        if ($this->sanctumTokensTableExists()) {
-            $users = User::query()
-                ->withCount('tokens')
-                ->orderBy('name')
-                ->paginate(20);
-        } else {
-            $users->getCollection()->transform(function (User $user): User {
-                $user->setAttribute('tokens_count', 0);
-
-                return $user;
-            });
-        }
-
-        return view('admin.management.users.index', [
-            'users' => $users,
-        ]);
+        return $dataTable->render('admin.management.users.index');
     }
 
     public function create(): View

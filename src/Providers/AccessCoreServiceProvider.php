@@ -15,7 +15,6 @@ use OTGH\AccessControl\Core\Console\Commands\MonitorDeviceMqttCommands;
 use OTGH\AccessControl\Core\Console\Commands\RebuildAccessControlSupervisorConfig;
 use OTGH\AccessControl\Core\Console\Commands\ReconcileReaderLockState;
 use OTGH\AccessControl\Core\Console\Commands\TestReadEvent;
-use OTGH\AccessControl\Core\Livewire\Admin\AccessReadersTable;
 use OTGH\AccessControl\Core\Livewire\Admin\DashboardLockCards;
 use OTGH\AccessControl\Core\Models\Hardware\Reader;
 use OTGH\AccessControl\Core\Models\Hardware\Source;
@@ -245,6 +244,5 @@ class AccessCoreServiceProvider extends ServiceProvider
         }
 
         Livewire::component('admin.dashboard-lock-cards', DashboardLockCards::class);
-        Livewire::component('admin.access-readers-table', AccessReadersTable::class);
     }
 }

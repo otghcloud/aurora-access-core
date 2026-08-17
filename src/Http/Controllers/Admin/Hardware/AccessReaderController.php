@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use OTGH\AccessControl\Core\DataTables\Admin\AccessReadersDataTable;
 use OTGH\AccessControl\Core\Enums\AccessControl\AccessBindingActionKey;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Jobs\ProcessReaderEvent;
@@ -28,9 +29,9 @@ class AccessReaderController extends Controller
 {
     public function __construct(private readonly AccessControlSettingsRepository $settings) {}
 
-    public function index(): View
+    public function index(AccessReadersDataTable $dataTable)
     {
-        return view('admin.hardware.readers.index');
+        return $dataTable->render('admin.hardware.readers.index');
     }
 
     public function show(Reader $reader): View

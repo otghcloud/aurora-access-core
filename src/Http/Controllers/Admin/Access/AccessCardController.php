@@ -6,6 +6,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use OTGH\AccessControl\Core\DataTables\Admin\AccessCardsDataTable;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Models\Access\Card;
 use OTGH\AccessControl\Core\Models\Access\Event;
@@ -13,11 +14,9 @@ use OTGH\AccessControl\Core\Models\Access\Individual;
 
 class AccessCardController extends Controller
 {
-    public function index(): View
+    public function index(AccessCardsDataTable $dataTable)
     {
-        return view('admin.access.cards.index', [
-            'accessCards' => Card::with('user')->latest('id')->paginate(20),
-        ]);
+        return $dataTable->render('admin.access.cards.index');
     }
 
     public function create(Request $request): View

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use OTGH\AccessControl\Core\DataTables\Admin\AreaPermissionsDataTable;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Models\Access\Area;
 use OTGH\AccessControl\Core\Models\Access\AreaPermission;
@@ -14,24 +15,9 @@ use OTGH\AccessControl\Core\Models\Access\Individual;
 
 class AreaPermissionController extends Controller
 {
-    public function index(Request $request): View
+    public function index(AreaPermissionsDataTable $dataTable): View
     {
-        $query = AreaPermission::query()->with(['accessUser', 'area']);
-
-        if ($request->filled('individual_id')) {
-            $query->where('individual_id', (int) $request->input('individual_id'));
-        }
-
-        if ($request->filled('area_id')) {
-            $query->where('area_id', (int) $request->input('area_id'));
-        }
-
-        if ($request->filled('permission')) {
-            $query->where('permission', $request->string('permission')->toString());
-        }
-
-        return view('admin.access.permissions.index', [
-            'permissions' => $query->latest('id')->paginate(30)->withQueryString(),
+        return $dataTable->render('admin.access.permissions.index', [
             'accessUsers' => Individual::query()->orderBy('name', 'asc')->get(['id', 'name']),
             'accessAreas' => Area::query()->orderBy('name', 'asc')->get(['id', 'name', 'identifier']),
         ]);

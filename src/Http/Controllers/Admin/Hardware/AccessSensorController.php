@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use OTGH\AccessControl\Core\DataTables\Admin\AccessSensorsDataTable;
 use OTGH\AccessControl\Core\Enums\AccessControl\AccessBindingActionKey;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Models\Access\Area;
@@ -19,11 +20,9 @@ use OTGH\AccessControl\Core\Services\AccessControlMqttPublisher;
 
 class AccessSensorController extends Controller
 {
-    public function index(): View
+    public function index(AccessSensorsDataTable $dataTable)
     {
-        return view('admin.hardware.sensors.index', [
-            'accessSensors' => Sensor::query()->with('area')->latest('id')->paginate(20),
-        ]);
+        return $dataTable->render('admin.hardware.sensors.index');
     }
 
     public function show(Sensor $sensor): View

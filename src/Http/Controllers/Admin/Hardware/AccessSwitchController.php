@@ -8,17 +8,16 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use OTGH\AccessControl\Core\DataTables\Admin\AccessSwitchesDataTable;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Models\Access\Area;
 use OTGH\AccessControl\Core\Models\Hardware\PhysicalSwitch;
 
 class AccessSwitchController extends Controller
 {
-    public function index(): View
+    public function index(AccessSwitchesDataTable $dataTable)
     {
-        return view('admin.hardware.switches.index', [
-            'accessSwitches' => PhysicalSwitch::query()->with('area')->latest('id')->paginate(20),
-        ]);
+        return $dataTable->render('admin.hardware.switches.index');
     }
 
     public function create(): View
