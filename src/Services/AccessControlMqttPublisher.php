@@ -241,7 +241,7 @@ class AccessControlMqttPublisher
         $mqtt = $this->makeClient($config);
 
         try {
-            $mqtt->publish($topic, (string) json_encode($payload, JSON_UNESCAPED_SLASHES), 0, $retain);
+            $mqtt->publish($topic, (string) json_encode($payload, JSON_UNESCAPED_SLASHES), 0, true);
         } finally {
             if ($mqtt->isConnected()) {
                 try {
@@ -258,7 +258,7 @@ class AccessControlMqttPublisher
         $context = [
             'topic' => $topic,
             'payload' => $payload,
-            'retained' => $retain,
+            'retained' => true,
             'connection' => $connectionName ?: 'default',
         ];
 
