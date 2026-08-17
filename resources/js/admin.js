@@ -5,7 +5,6 @@ import '@tabler/core/js/tabler';
 import '@fortawesome/fontawesome-free/js/fontawesome';
 import '@fortawesome/fontawesome-free/js/regular';
 import '@fortawesome/fontawesome-free/js/solid';
-import 'laravel-datatables-vite';
 
 document.addEventListener('click', function (event) {
 	const deleteLink = event.target.closest('[data-action="delete-modal"]');
@@ -48,3 +47,11 @@ window.$ = $;
 window.jQuery = $;
 
 import 'jquery-migrate';
+import DataTable from 'datatables.net-bs5';
+import 'datatables.net-responsive-bs5';
+import 'datatables.net-buttons-bs5';
+import 'datatables.net-select-bs5';
+import 'laravel-datatables-vite/js/dataTables.buttons.js';
+import 'laravel-datatables-vite/js/dataTables.renderers.js';
+
+window.DataTable = DataTable;
