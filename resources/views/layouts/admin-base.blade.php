@@ -43,7 +43,11 @@
 							</div>
 
 							@hasSection('page-actions')
-								@yield('page-actions')
+								<div class="col-auto ms-auto">
+									<div class="btn-list d-flex flex-wrap justify-content-end gap-2">
+										@yield('page-actions')
+									</div>
+								</div>
 							@endif
 
 						</div>

@@ -29,6 +29,13 @@ class AccessCardsDataTable extends DataTable
                 ['type' => 'edit', 'href' => route('admin.access-cards.edit', $card)],
                 ['type' => 'delete', 'href' => route('admin.access-cards.destroy', $card)],
             ]))
+            ->filterColumn('user_name', fn (QueryBuilder $query, string $keyword) => $query->whereHas(
+                'user',
+                fn (QueryBuilder $userQuery) => $userQuery->whereRaw('LOWER(name) LIKE ?', ['%'.strtolower($keyword).'%'])
+            ))
+            ->orderColumn('user_name', fn (QueryBuilder $query, string $direction) => $query->orderByRaw(
+                '(select name from individuals where individuals.id = '.$query->getModel()->getTable().'.user_id) '.(strtolower($direction) === 'desc' ? 'desc' : 'asc')
+            ))
             ->rawColumns(['active', 'actions'])
             ->setRowId('id');
     }
@@ -36,12 +43,12 @@ class AccessCardsDataTable extends DataTable
     /** @return QueryBuilder<Card> */
     public function query(Card $model): QueryBuilder
     {
-        return $model->newQuery()->with('user')->latest('id');
+        return $model->newQuery()->with('user');
     }
 
     public function html(): HtmlBuilder
     {
-        return $this->builder()->setTableId('access-cards-table')->columns($this->getColumns())->minifiedAjax()->orderBy(0, 'desc')->responsive(true)->serverSide(true);
+        return $this->builder()->setTableId('access-cards-table')->columns($this->getColumns())->minifiedAjax()->orderBy(0, 'asc')->responsive(true)->serverSide(true);
     }
 
     /** @return array<int, Column> */
@@ -49,10 +56,10 @@ class AccessCardsDataTable extends DataTable
     {
         return [
             Column::make('card_number')->title('Card Number'),
-            Column::make('user_name')->title('User'),
-            Column::make('active')->title('Active')->orderable(false),
+            Column::computed('user_name')->title('User')->orderable(true)->searchable(true),
+            Column::make('active')->title('Active')->searchable(false),
             Column::make('description')->title('Description'),
-            Column::computed('actions')->title('Actions')->orderable(false)->searchable(false),
+            Column::computed('actions')->title('Actions'),
         ];
     }
 }

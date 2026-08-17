@@ -36,7 +36,7 @@ class SystemUsersDataTable extends DataTable
     /** @return QueryBuilder<User> */
     public function query(User $model): QueryBuilder
     {
-        $query = $model->newQuery()->orderBy('name');
+        $query = $model->newQuery();
 
         return Schema::hasTable('personal_access_tokens')
             ? $query->withCount('tokens')
@@ -54,8 +54,8 @@ class SystemUsersDataTable extends DataTable
         return [
             Column::make('name')->title('Name'),
             Column::make('email')->title('Email'),
-            Column::make('tokens_count')->title('API Tokens')->orderable(false),
-            Column::computed('actions')->title('Actions')->orderable(false)->searchable(false),
+            Column::computed('tokens_count')->title('API Tokens'),
+            Column::computed('actions')->title('Actions'),
         ];
     }
 }

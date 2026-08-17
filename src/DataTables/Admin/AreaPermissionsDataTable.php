@@ -27,6 +27,20 @@ class AreaPermissionsDataTable extends DataTable
                 ['type' => 'delete', 'href' => route('admin.access-area-permissions.destroy', $permission)],
             ]))
             ->rawColumns(['permission', 'actions'])
+            ->filterColumn('user_name', fn (QueryBuilder $query, string $keyword) => $query->whereHas(
+                'accessUser',
+                fn (QueryBuilder $userQuery) => $userQuery->whereRaw('LOWER(name) LIKE ?', ['%'.strtolower($keyword).'%'])
+            ))
+            ->orderColumn('user_name', fn (QueryBuilder $query, string $direction) => $query->orderByRaw(
+                '(select name from individuals where individuals.id = '.$query->getModel()->getTable().'.individual_id) '.(strtolower($direction) === 'desc' ? 'desc' : 'asc')
+            ))
+            ->filterColumn('area_name', fn (QueryBuilder $query, string $keyword) => $query->whereHas(
+                'area',
+                fn (QueryBuilder $areaQuery) => $areaQuery->whereRaw('LOWER(name) LIKE ?', ['%'.strtolower($keyword).'%'])
+            ))
+            ->orderColumn('area_name', fn (QueryBuilder $query, string $direction) => $query->orderByRaw(
+                '(select name from areas where areas.id = '.$query->getModel()->getTable().'.area_id) '.(strtolower($direction) === 'desc' ? 'desc' : 'asc')
+            ))
             ->setRowId('id');
     }
 
@@ -36,8 +50,7 @@ class AreaPermissionsDataTable extends DataTable
         return $model->newQuery()->with(['accessUser', 'area'])
             ->when($this->request->filled('individual_id'), fn (QueryBuilder $query) => $query->where('individual_id', (int) $this->request->input('individual_id')))
             ->when($this->request->filled('area_id'), fn (QueryBuilder $query) => $query->where('area_id', (int) $this->request->input('area_id')))
-            ->when($this->request->filled('permission'), fn (QueryBuilder $query) => $query->where('permission', $this->request->string('permission')->toString()))
-            ->latest('id');
+            ->when($this->request->filled('permission'), fn (QueryBuilder $query) => $query->where('permission', $this->request->string('permission')->toString()));
     }
 
     public function html(): HtmlBuilder
@@ -49,10 +62,10 @@ class AreaPermissionsDataTable extends DataTable
     public function getColumns(): array
     {
         return [
-            Column::make('user_name')->title('User')->orderable(false),
-            Column::make('area_name')->title('Area')->orderable(false),
-            Column::make('permission')->title('Permission')->orderable(false),
-            Column::computed('actions')->title('Actions')->orderable(false)->searchable(false),
+            Column::computed('user_name')->title('User')->orderable(true)->searchable(true),
+            Column::computed('area_name')->title('Area')->orderable(true)->searchable(true),
+            Column::make('permission')->title('Permission'),
+            Column::computed('actions')->title('Actions'),
         ];
     }
 }

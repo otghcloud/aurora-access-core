@@ -38,6 +38,10 @@ class AdapterBindingsDataTable extends DataTable
                 ['type' => 'delete', 'href' => route('admin.access-bindings.destroy', $binding)],
             ]))
             ->rawColumns(['direction', 'adapter_type', 'action_key', 'target', 'channel', 'actions'])
+            ->filterColumn('source_name', fn (QueryBuilder $query, string $keyword) => $query->whereHas(
+                'source',
+                fn (QueryBuilder $sourceQuery) => $sourceQuery->whereRaw('LOWER(name) LIKE ?', ['%'.strtolower($keyword).'%'])
+            ))
             ->setRowId('id');
     }
 
@@ -56,28 +60,27 @@ class AdapterBindingsDataTable extends DataTable
                 $action instanceof AccessBindingActionKey
                     ? $query->whereIn('action_key', $action->queryCandidates())
                     : $query->whereRaw('1 = 0');
-            })
-            ->latest('id');
+            });
     }
 
     public function html(): HtmlBuilder
     {
-        return $this->builder()->setTableId('adapter-bindings-table')->columns($this->getColumns())->minifiedAjax()->orderBy(0, 'desc')->responsive(true)->serverSide(true);
+        return $this->builder()->setTableId('adapter-bindings-table')->columns($this->getColumns())->minifiedAjax()->orderBy(1, 'asc')->responsive(true)->serverSide(true);
     }
 
     /** @return array<int, Column> */
     public function getColumns(): array
     {
         return [
-            Column::make('direction')->title('Direction')->orderable(false),
+            Column::make('direction')->title('Direction'),
             Column::make('adapter_type')->title('Adapter'),
-            Column::make('action_key')->title('Action')->orderable(false),
-            Column::make('target')->title('Target')->orderable(false)->searchable(false),
-            Column::make('source_name')->title('Source')->orderable(false),
-            Column::make('channel')->title('Channel')->orderable(false),
-            Column::make('reversed')->title('Reversed')->orderable(false)->searchable(false),
-            Column::make('enabled_label')->title('Enabled')->orderable(false)->searchable(false),
-            Column::computed('actions')->title('Actions')->orderable(false)->searchable(false),
+            Column::make('action_key')->title('Action'),
+            Column::computed('target')->title('Target'),
+            Column::computed('source_name')->title('Source')->searchable(true),
+            Column::make('channel')->title('Channel'),
+            Column::computed('reversed')->title('Reversed'),
+            Column::computed('enabled_label')->title('Enabled'),
+            Column::computed('actions')->title('Actions'),
         ];
     }
 }

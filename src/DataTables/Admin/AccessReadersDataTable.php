@@ -31,18 +31,25 @@ class AccessReadersDataTable extends DataTable
                 ['type' => 'delete', 'href' => route('admin.access-readers.destroy', $reader)],
             ]))
             ->rawColumns(['metadata_display', 'actions'])
+            ->filterColumn('area_name', fn (QueryBuilder $query, string $keyword) => $query->whereHas(
+                'area',
+                fn (QueryBuilder $areaQuery) => $areaQuery->whereRaw('LOWER(name) LIKE ?', ['%'.strtolower($keyword).'%'])
+            ))
+            ->orderColumn('area_name', fn (QueryBuilder $query, string $direction) => $query->orderByRaw(
+                '(select name from areas where areas.id = '.$query->getModel()->getTable().'.area_id) '.(strtolower($direction) === 'desc' ? 'desc' : 'asc')
+            ))
             ->setRowId('id');
     }
 
     /** @return QueryBuilder<Reader> */
     public function query(Reader $model): QueryBuilder
     {
-        return $model->newQuery()->with('area')->latest('id');
+        return $model->newQuery()->with('area');
     }
 
     public function html(): HtmlBuilder
     {
-        return $this->builder()->setTableId('access-readers-table')->columns($this->getColumns())->minifiedAjax()->orderBy(0, 'desc')->responsive(true)->serverSide(true);
+        return $this->builder()->setTableId('access-readers-table')->columns($this->getColumns())->minifiedAjax()->orderBy(0, 'asc')->responsive(true)->serverSide(true);
     }
 
     /** @return array<int, Column> */
@@ -51,9 +58,9 @@ class AccessReadersDataTable extends DataTable
         return [
             Column::make('name')->title('Name'),
             Column::make('identifier')->title('Identifier'),
-            Column::make('area_name')->title('Area')->orderable(false),
-            Column::make('metadata_display')->title('Metadata')->orderable(false)->searchable(false),
-            Column::computed('actions')->title('Actions')->orderable(false)->searchable(false),
+            Column::computed('area_name')->title('Area')->orderable(true)->searchable(true),
+            Column::computed('metadata_display')->title('Metadata'),
+            Column::computed('actions')->title('Actions'),
         ];
     }
 }

@@ -46,12 +46,12 @@ class AccessSourcesDataTable extends DataTable
     /** @return QueryBuilder<Source> */
     public function query(Source $model): QueryBuilder
     {
-        return $model->newQuery()->latest('id');
+        return $model->newQuery();
     }
 
     public function html(): HtmlBuilder
     {
-        return $this->builder()->setTableId('access-sources-table')->columns($this->getColumns())->minifiedAjax()->orderBy(0, 'desc')->responsive(true)->serverSide(true);
+        return $this->builder()->setTableId('access-sources-table')->columns($this->getColumns())->minifiedAjax()->orderBy(0, 'asc')->responsive(true)->serverSide(true);
     }
 
     /** @return array<int, Column> */
@@ -60,10 +60,10 @@ class AccessSourcesDataTable extends DataTable
         return [
             Column::make('name')->title('Name'),
             Column::make('identifier')->title('Identifier'),
-            Column::make('type')->title('Type')->orderable(false),
+            Column::make('type')->title('Type'),
             Column::make('endpoint')->title('Endpoint'),
-            Column::make('enabled')->title('Enabled')->orderable(false),
-            Column::computed('actions')->title('Actions')->orderable(false)->searchable(false),
+            Column::make('enabled')->title('Enabled')->searchable(false),
+            Column::computed('actions')->title('Actions'),
         ];
     }
 }

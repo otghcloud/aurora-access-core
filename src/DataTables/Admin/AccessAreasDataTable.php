@@ -27,18 +27,22 @@ class AccessAreasDataTable extends DataTable
                 ['type' => 'delete', 'href' => route('admin.access-areas.destroy', $area)],
             ]))
             ->rawColumns(['identifier', 'actions'])
+            ->orderColumn('readers_total', fn (QueryBuilder $query, string $direction) => $query->orderBy('readers_count', $direction))
+            ->orderColumn('locks_total', fn (QueryBuilder $query, string $direction) => $query->orderBy('locks_count', $direction))
+            ->orderColumn('switches_total', fn (QueryBuilder $query, string $direction) => $query->orderBy('switches_count', $direction))
+            ->orderColumn('permissions_total', fn (QueryBuilder $query, string $direction) => $query->orderBy('permissions_count', $direction))
             ->setRowId('id');
     }
 
     /** @return QueryBuilder<Area> */
     public function query(Area $model): QueryBuilder
     {
-        return $model->newQuery()->withCount(['readers', 'locks', 'switches', 'permissions'])->latest('id');
+        return $model->newQuery()->withCount(['readers', 'locks', 'switches', 'permissions']);
     }
 
     public function html(): HtmlBuilder
     {
-        return $this->builder()->setTableId('access-areas-table')->columns($this->getColumns())->minifiedAjax()->orderBy(0, 'desc')->responsive(true)->serverSide(true);
+        return $this->builder()->setTableId('access-areas-table')->columns($this->getColumns())->minifiedAjax()->orderBy(0, 'asc')->responsive(true)->serverSide(true);
     }
 
     /** @return array<int, Column> */
@@ -47,11 +51,11 @@ class AccessAreasDataTable extends DataTable
         return [
             Column::make('name')->title('Name'),
             Column::make('identifier')->title('Identifier'),
-            Column::make('readers_total')->title('Readers')->orderable(false),
-            Column::make('locks_total')->title('Locks')->orderable(false),
-            Column::make('switches_total')->title('Switches')->orderable(false),
-            Column::make('permissions_total')->title('Permissions')->orderable(false),
-            Column::computed('actions')->title('Actions')->orderable(false)->searchable(false),
+            Column::computed('readers_total')->title('Readers')->orderable(true),
+            Column::computed('locks_total')->title('Locks')->orderable(true),
+            Column::computed('switches_total')->title('Switches')->orderable(true),
+            Column::computed('permissions_total')->title('Permissions')->orderable(true),
+            Column::computed('actions')->title('Actions'),
         ];
     }
 }

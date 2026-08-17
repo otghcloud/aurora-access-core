@@ -18,9 +18,6 @@
                 </div>
                 <div class="col-md-auto col-sm-12">
                     <div class="ms-auto d-flex flex-wrap gap-2 align-items-center">
-                        @hasSection('page-actions')
-                            @yield('page-actions')
-                        @endif
                         <div class="input-group input-group-flat w-auto">
                             <span class="input-group-text" aria-hidden="true">
                                 <i class="fa-solid fa-magnifying-glass"></i>

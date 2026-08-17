@@ -49,13 +49,27 @@ class AccessEventsDataTable extends DataTable
                 return DataTableHelpers::actionsDropdown($actions);
             })
             ->rawColumns(['status_label', 'originator', 'actions'])
+            ->filterColumn('user_name', fn (QueryBuilder $query, string $keyword) => $query->whereHas(
+                'accessUser',
+                fn (QueryBuilder $userQuery) => $userQuery->whereRaw('LOWER(name) LIKE ?', ['%'.strtolower($keyword).'%'])
+            ))
+            ->filterColumn('card_display', fn (QueryBuilder $query, string $keyword) => $query
+                ->whereRaw('LOWER(card_number) LIKE ?', ['%'.strtolower($keyword).'%'])
+                ->orWhereHas(
+                    'accessCard',
+                    fn (QueryBuilder $cardQuery) => $cardQuery->whereRaw('LOWER(card_number) LIKE ?', ['%'.strtolower($keyword).'%'])
+                ))
+            ->filterColumn('area_name', fn (QueryBuilder $query, string $keyword) => $query->whereHas(
+                'accessArea',
+                fn (QueryBuilder $areaQuery) => $areaQuery->whereRaw('LOWER(name) LIKE ?', ['%'.strtolower($keyword).'%'])
+            ))
             ->setRowId('id');
     }
 
     /** @return QueryBuilder<Event> */
     public function query(Event $model): QueryBuilder
     {
-        return $model->newQuery()->with(['accessUser', 'accessCard', 'originReader', 'accessArea', 'accessLock'])->latest('id');
+        return $model->newQuery()->with(['accessUser', 'accessCard', 'originReader', 'accessArea', 'accessLock']);
     }
 
     public function html(): HtmlBuilder
@@ -67,14 +81,14 @@ class AccessEventsDataTable extends DataTable
     public function getColumns(): array
     {
         return [
-            Column::make('created_at')->title('Time'),
-            Column::make('status_label')->title('Status')->orderable(false),
-            Column::make('granted_label')->title('Granted')->orderable(false),
-            Column::make('user_name')->title('User')->orderable(false),
-            Column::make('card_display')->title('Card')->orderable(false),
-            Column::make('originator')->title('Originator')->orderable(false),
-            Column::make('area_name')->title('Area')->orderable(false),
-            Column::computed('actions')->title('Actions')->orderable(false)->searchable(false),
+            Column::make('created_at')->title('Time')->searchable(false),
+            Column::computed('status_label')->title('Status'),
+            Column::computed('granted_label')->title('Granted'),
+            Column::computed('user_name')->title('User')->searchable(true),
+            Column::computed('card_display')->title('Card')->searchable(true),
+            Column::computed('originator')->title('Originator'),
+            Column::computed('area_name')->title('Area')->searchable(true),
+            Column::computed('actions')->title('Actions'),
         ];
     }
 }

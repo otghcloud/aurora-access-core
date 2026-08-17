@@ -30,6 +30,7 @@ class AccessUsersDataTable extends DataTable
                     ],
                 ]);
             })
+            ->orderColumn('cards_count', fn (QueryBuilder $query, string $direction) => $query->orderBy('cards_count', $direction))
             ->rawColumns(['actions'])
             ->setRowId('id');
     }
@@ -39,7 +40,7 @@ class AccessUsersDataTable extends DataTable
      */
     public function query(Individual $model): QueryBuilder
     {
-        return $model->newQuery()->withCount('cards')->orderBy('name');
+        return $model->newQuery()->withCount('cards');
     }
 
     public function html(): HtmlBuilder
@@ -60,8 +61,8 @@ class AccessUsersDataTable extends DataTable
     {
         return [
             Column::make('name')->title('Name'),
-            Column::make('cards_count')->title('Cards'),
-            Column::computed('actions')->title('Actions')->orderable(false)->searchable(false),
+            Column::computed('cards_count')->title('Cards')->orderable(true),
+            Column::computed('actions')->title('Actions'),
         ];
     }
 }
