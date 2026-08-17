@@ -5,11 +5,13 @@ namespace OTGH\AccessControl\Core\Console\Commands;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use OTGH\AccessControl\Core\Models\Access\Event;
 use OTGH\AccessControl\Core\Models\Hardware\Reader;
 use OTGH\AccessControl\Core\Services\AccessControl\AccessOutputOrchestrator;
 use OTGH\AccessControl\Core\Services\AccessControl\ExpectedLockStateStore;
+use OTGH\AccessControl\Core\Services\AccessControlHealthService;
 use OTGH\AccessControl\Core\Services\AccessControlMqttPublisher;
 use Throwable;
 
@@ -34,6 +36,7 @@ class ReconcileReaderLockState extends Command
 
         if ($readers->isEmpty()) {
             $this->warn('No readers available for lock-state reconciliation.');
+            $this->recordHealthStatus(0, 0, 0, 0, $dryRun);
 
             return self::SUCCESS;
         }
@@ -176,6 +179,25 @@ class ReconcileReaderLockState extends Command
             $dryRun ? 'yes' : 'no',
         ));
 
+        $this->recordHealthStatus($readers->count(), $driftDetected, $reconciled, $failures, $dryRun);
+
         return $failures > 0 ? self::FAILURE : self::SUCCESS;
+    }
+
+    private function recordHealthStatus(
+        int $readersChecked,
+        int $driftDetected,
+        int $republished,
+        int $failures,
+        bool $dryRun,
+    ): void {
+        Cache::forever(AccessControlHealthService::MQTT_SYNC_STATUS_CACHE_KEY, [
+            'generated_at' => now()->toIso8601String(),
+            'readers_checked' => $readersChecked,
+            'drift_detected' => $driftDetected,
+            'republished' => $republished,
+            'failures' => $failures,
+            'dry_run' => $dryRun,
+        ]);
     }
 }
