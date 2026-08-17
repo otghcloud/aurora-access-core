@@ -22,7 +22,7 @@ use OTGH\AccessControl\Core\Services\AccessControlMqttPublisher;
 
 class AccessAdapterBindingController extends Controller
 {
-    public function index(AdapterBindingsDataTable $dataTable): View
+    public function index(AdapterBindingsDataTable $dataTable)
     {
         return $dataTable->render('admin.hardware.bindings.index', [
             'accessSources' => Source::query()->orderBy('name')->get(['id', 'name', 'type']),

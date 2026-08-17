@@ -15,7 +15,7 @@ use OTGH\AccessControl\Core\Models\Access\Individual;
 
 class AreaPermissionController extends Controller
 {
-    public function index(AreaPermissionsDataTable $dataTable): View
+    public function index(AreaPermissionsDataTable $dataTable)
     {
         return $dataTable->render('admin.access.permissions.index', [
             'accessUsers' => Individual::query()->orderBy('name', 'asc')->get(['id', 'name']),
