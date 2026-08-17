@@ -48,6 +48,12 @@ class Light extends Model
         return $this->hasMany(Event::class, 'access_light_id');
     }
 
+    public function adapterBindings(): HasMany
+    {
+        return $this->hasMany(AdapterBinding::class, 'target_id')
+            ->where('target_type', 'light');
+    }
+
     /**
      * Get human-readable state
      */

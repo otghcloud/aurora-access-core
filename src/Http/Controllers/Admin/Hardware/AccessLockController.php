@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use OTGH\AccessControl\Core\Enums\AccessControl\AccessBindingActionKey;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
-use OTGH\AccessControl\Core\Jobs\PublishReaderState;
+use OTGH\AccessControl\Core\Jobs\PublishLocksForReader;
 use OTGH\AccessControl\Core\Models\Access\Area;
 use OTGH\AccessControl\Core\Models\Access\Event;
 use OTGH\AccessControl\Core\Models\Hardware\AdapterBinding;
@@ -122,7 +122,7 @@ class AccessLockController extends Controller
         Reader::query()
             ->where('area_id', $lock->area_id)
             ->get()
-            ->each(fn (Reader $reader) => PublishReaderState::dispatch($reader));
+            ->each(fn (Reader $reader) => PublishLocksForReader::dispatch($reader));
 
         return redirect()->route('admin.access-locks.show', $lock)->with('status', 'Lock bindings updated successfully.');
     }

@@ -123,7 +123,7 @@ CONF;
     {
         return <<<CONF
 [program:access-control-mqtt-monitor]
-command={$phpBinary} {$workingDir}/artisan app:monitor-reader-push --connection=monitor --qos=0
+command={$phpBinary} {$workingDir}/artisan app:monitor-device-mqtt-commands --connection=monitor --qos=0
 autostart=true
 autorestart=true
 startsecs=2

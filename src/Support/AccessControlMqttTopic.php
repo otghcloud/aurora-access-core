@@ -2,90 +2,43 @@
 
 namespace OTGH\AccessControl\Core\Support;
 
-use Illuminate\Support\Str;
 use LogicException;
 use OTGH\AccessControl\Core\Models\Access\Area;
-use OTGH\AccessControl\Core\Models\Hardware\Reader;
+use OTGH\AccessControl\Core\Models\Hardware\Light;
+use OTGH\AccessControl\Core\Models\Hardware\Lock;
+use OTGH\AccessControl\Core\Models\Hardware\Sensor;
 use OTGH\AccessControl\Core\Services\AccessControl\AccessControlSettingsRepository;
 
 class AccessControlMqttTopic
 {
-    public static function areaSlug(Area $area): string
+    public static function lockStateTopic(Lock $lock): string
     {
-        $preferred = trim((string) ($area->name ?? ''));
-        $fallback = trim((string) ($area->identifier ?? ''));
-
-        $slugSource = $preferred !== '' ? $preferred : $fallback;
-        $slug = Str::slug($slugSource, '-');
-
-        if ($slug !== '') {
-            return $slug;
-        }
-
-        return 'area-'.$area->id;
+        return self::deviceBaseTopic($lock->area, 'locks', (int) $lock->id).'/state';
     }
 
-    public static function readerSlug(Reader $reader): string
+    public static function lockCommandTopic(Lock $lock): string
     {
-        $area = $reader->area;
-
-        if (! $area instanceof Area) {
-            throw new LogicException('Reader must be assigned to an area for MQTT topic generation.');
-        }
-
-        return self::areaSlug($area);
+        return self::deviceBaseTopic($lock->area, 'locks', (int) $lock->id).'/command';
     }
 
-    public static function areaBaseTopic(Area $area): string
+    public static function sensorStateTopic(Sensor $sensor): string
     {
-        return self::topicPrefix().'/'.self::areaSlug($area);
+        return self::deviceBaseTopic($sensor->area, 'sensors', (int) $sensor->id).'/state';
     }
 
-    public static function baseTopic(Reader $reader): string
+    public static function lightStateTopic(Light $light): string
     {
-        $area = $reader->area;
-
-        if (! $area instanceof Area) {
-            throw new LogicException('Reader must be assigned to an area for MQTT topic generation.');
-        }
-
-        return self::areaBaseTopic($area);
+        return self::deviceBaseTopic($light->area, 'lights', (int) $light->id).'/state';
     }
 
-    public static function commandTopic(Reader $reader): string
+    public static function lightCommandTopic(Light $light): string
     {
-        $suffix = self::commandSuffix();
-
-        return self::baseTopic($reader).'/'.$suffix;
+        return self::deviceBaseTopic($light->area, 'lights', (int) $light->id).'/command';
     }
 
-    public static function stateTopic(Reader $reader): string
+    public static function deviceCommandWildcardTopic(): string
     {
-        $suffix = self::stateSuffix();
-
-        return self::baseTopic($reader).'/'.$suffix;
-    }
-
-    public static function eventsTopic(Reader $reader): string
-    {
-        $suffix = self::eventsSuffix();
-
-        return self::baseTopic($reader).'/'.$suffix;
-    }
-
-    public static function commandSuffix(): string
-    {
-        return self::trimmedSetting('mqtt_command_suffix', 'cmd');
-    }
-
-    public static function stateSuffix(): string
-    {
-        return self::trimmedSetting('mqtt_state_suffix', 'state');
-    }
-
-    public static function eventsSuffix(): string
-    {
-        return self::trimmedSetting('mqtt_events_suffix', 'events');
+        return self::topicPrefix().'/v1/areas/+/+/+/command';
     }
 
     private static function topicPrefix(): string
@@ -94,6 +47,15 @@ class AccessControlMqttTopic
         $prefix = trim($configured, '/');
 
         return $prefix !== '' ? $prefix : 'access_control';
+    }
+
+    private static function deviceBaseTopic(?Area $area, string $deviceType, int $deviceId): string
+    {
+        if (! $area instanceof Area) {
+            throw new LogicException('A device must be assigned to an area for MQTT topic generation.');
+        }
+
+        return self::topicPrefix().'/v1/areas/'.$area->id.'/'.$deviceType.'/'.$deviceId;
     }
 
     private static function trimmedSetting(string $key, string $default): string

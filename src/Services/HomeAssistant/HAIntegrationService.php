@@ -257,12 +257,13 @@ class HAIntegrationService
             'confidence' => $state['confidence'],
             'updated_at' => $state['updated_at'] ?? $lock->updated_at->toIso8601String(),
             'state_source' => $state['source'],
-            'state_topic' => AccessControlMqttTopic::areaBaseTopic($area ?? $lock->area).'/state',
+            'state_topic' => AccessControlMqttTopic::lockStateTopic($lock),
             'autolock' => [
                 'enabled' => $autolock['enabled'],
                 'duration_seconds' => min(3600, max(0, $autolock['duration'])),
                 'source' => $autolock['source'],
             ],
+            'bindings' => $this->bindingDiagnostics($lock),
         ];
     }
 
@@ -281,7 +282,8 @@ class HAIntegrationService
             'available' => true,
             'device_class' => $this->getDeviceClassForSensor($sensor),
             'updated_at' => $sensor->updated_at->toIso8601String(),
-            'state_topic' => AccessControlMqttTopic::areaBaseTopic($area ?? $sensor->area).'/sensor/'.$sensor->identifier,
+            'state_topic' => AccessControlMqttTopic::sensorStateTopic($sensor),
+            'bindings' => $this->bindingDiagnostics($sensor),
         ];
     }
 
@@ -298,6 +300,12 @@ class HAIntegrationService
             'state' => $light->state ? 'on' : 'off',
             'available' => true,
             'updated_at' => $light->updated_at->toIso8601String(),
+            'state_topic' => AccessControlMqttTopic::lightStateTopic($light),
+            'capabilities' => [
+                'brightness' => $light->supportsBrightness(),
+                'color' => $light->supportsColor(),
+            ],
+            'bindings' => $this->bindingDiagnostics($light),
         ];
 
         if (data_get($light->config, 'features.brightness', false)) {
@@ -309,5 +317,29 @@ class HAIntegrationService
         }
 
         return $data;
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    protected function bindingDiagnostics(Lock|Sensor|Light $device): array
+    {
+        return $device->adapterBindings()
+            ->with('source')
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($binding): array => [
+                'id' => (int) $binding->id,
+                'source_id' => (int) $binding->source_id,
+                'source_type' => $binding->source?->type,
+                'adapter_type' => (string) $binding->adapter_type,
+                'channel' => (string) $binding->channel,
+                'action_key' => $binding->actionKeyName(),
+                'direction' => (string) $binding->direction,
+                'enabled' => (bool) $binding->enabled,
+                'signal_reversed' => (bool) $binding->signal_reversed,
+            ])
+            ->values()
+            ->all();
     }
 }

@@ -5,7 +5,6 @@ namespace OTGH\AccessControl\Core\Services\AccessControl;
 use Illuminate\Database\Eloquent\Collection;
 use OTGH\AccessControl\Core\Enums\AccessControl\AccessEventStatus;
 use OTGH\AccessControl\Core\Jobs\ProcessReaderEvent;
-use OTGH\AccessControl\Core\Jobs\PublishReaderEvent;
 use OTGH\AccessControl\Core\Jobs\PulseReaderFeedbackState;
 use OTGH\AccessControl\Core\Models\Access\AreaPermission;
 use OTGH\AccessControl\Core\Models\Access\Card;
@@ -146,10 +145,6 @@ class HandleAccessRequest
                 'metadata' => $metadata,
                 'ip_address' => $ipAddress,
             ]);
-        }
-
-        if ($accessReader) {
-            PublishReaderEvent::dispatch($accessReader, AccessEventStatus::DOORBELL_PRESSED->key());
         }
 
         return new AccessRequestResult(AccessEventStatus::DOORBELL_PRESSED, null, null, $accessReader, $event);

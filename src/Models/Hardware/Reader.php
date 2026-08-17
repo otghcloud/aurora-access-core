@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use OTGH\AccessControl\Core\Models\Access\Area;
 use OTGH\AccessControl\Core\Models\Access\Event;
 use OTGH\AccessControl\Core\Models\BaseModel;
-use OTGH\AccessControl\Core\Support\AccessControlMqttTopic;
 
 class Reader extends BaseModel
 {
@@ -75,30 +74,5 @@ class Reader extends BaseModel
             'id',
             'lock_id'
         );
-    }
-
-    public function mqttReaderSlug(): string
-    {
-        return AccessControlMqttTopic::readerSlug($this);
-    }
-
-    public function mqttBaseTopic(): string
-    {
-        return AccessControlMqttTopic::baseTopic($this);
-    }
-
-    public function mqttCommandTopic(): string
-    {
-        return AccessControlMqttTopic::commandTopic($this);
-    }
-
-    public function mqttStateTopic(): string
-    {
-        return AccessControlMqttTopic::stateTopic($this);
-    }
-
-    public function mqttEventsTopic(): string
-    {
-        return AccessControlMqttTopic::eventsTopic($this);
     }
 }

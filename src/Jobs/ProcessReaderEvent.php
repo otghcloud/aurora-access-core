@@ -103,7 +103,7 @@ class ProcessReaderEvent implements ShouldQueue
         $expectedLockStateStore->storeExpectedLockPower($persistedReader, $newValue, $this->determineEventSource());
         $lockStateStore->storeForReader($persistedReader, $newValue, $this->determineEventSource());
 
-        $mqttPublisher->publishReaderState($this->accessReader, $newValue);
+        $mqttPublisher->publishLocksForReader($persistedReader);
 
         $area = $this->accessReader->area;
         $lock = $area?->primaryLock();

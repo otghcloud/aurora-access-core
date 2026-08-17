@@ -13,7 +13,7 @@ use Illuminate\View\View;
 use OTGH\AccessControl\Core\Enums\AccessControl\AccessBindingActionKey;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Jobs\ProcessReaderEvent;
-use OTGH\AccessControl\Core\Jobs\PublishReaderState;
+use OTGH\AccessControl\Core\Jobs\PublishLocksForReader;
 use OTGH\AccessControl\Core\Models\Access\Area;
 use OTGH\AccessControl\Core\Models\Access\Event;
 use OTGH\AccessControl\Core\Models\Hardware\AdapterBinding;
@@ -90,7 +90,7 @@ class AccessReaderController extends Controller
 
         $this->syncBindings($reader->fresh(), $inputBindings, $outputBindings);
 
-        PublishReaderState::dispatch($reader);
+        PublishLocksForReader::dispatch($reader);
 
         return redirect()->route('admin.access-readers.index')->with('status', 'Access reader created successfully.');
     }
@@ -145,7 +145,7 @@ class AccessReaderController extends Controller
         $bindingsChanged = $this->syncBindings($reader->fresh(), $inputBindings, $outputBindings);
 
         if ($bindingsChanged || $this->hasMqttStateRelevantChanges($previousName, $previousConfig, $previousRoomId, $validated)) {
-            PublishReaderState::dispatch($reader->fresh());
+            PublishLocksForReader::dispatch($reader->fresh());
         }
 
         return redirect()->route('admin.access-readers.index')->with('status', 'Access reader updated successfully.');
@@ -220,7 +220,7 @@ class AccessReaderController extends Controller
         $changed = $this->syncBindings($reader->fresh(), $inputBindings, $outputBindings);
 
         if ($changed) {
-            PublishReaderState::dispatch($reader->fresh());
+            PublishLocksForReader::dispatch($reader->fresh());
         }
 
         return redirect()->route('admin.access-readers.bindings.edit', $reader)
@@ -344,7 +344,7 @@ class AccessReaderController extends Controller
         Reader::query()
             ->where('area_id', $area->id)
             ->get()
-            ->each(fn (Reader $reader) => PublishReaderState::dispatch($reader->fresh()));
+            ->each(fn (Reader $reader) => PublishLocksForReader::dispatch($reader->fresh()));
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([

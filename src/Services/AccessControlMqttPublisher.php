@@ -6,12 +6,14 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use OTGH\AccessControl\Core\Models\Access\Area;
+use OTGH\AccessControl\Core\Models\Hardware\AdapterBinding;
+use OTGH\AccessControl\Core\Models\Hardware\Light;
+use OTGH\AccessControl\Core\Models\Hardware\Lock;
 use OTGH\AccessControl\Core\Models\Hardware\Reader;
 use OTGH\AccessControl\Core\Models\Hardware\Sensor;
 use OTGH\AccessControl\Core\Services\AccessControl\AccessControlSettingsRepository;
-use OTGH\AccessControl\Core\Services\AccessControl\AccessOutputOrchestrator;
 use OTGH\AccessControl\Core\Services\AccessControl\AutolockSettingsResolver;
+use OTGH\AccessControl\Core\Services\AccessControl\LockStateStore;
 use OTGH\AccessControl\Core\Support\AccessControlMqttTopic;
 use PhpMqtt\Client\ConnectionSettings;
 use PhpMqtt\Client\MqttClient;
@@ -22,63 +24,108 @@ class AccessControlMqttPublisher
 {
     public function __construct(
         private readonly AutolockSettingsResolver $autolockSettingsResolver,
+        private readonly LockStateStore $lockStateStore,
         private readonly AccessControlSettingsRepository $settings,
     ) {}
 
     /**
-     * @return array{lock_power:int|null,autolock_enabled:int,autolock_duration:int,ts:string}
+     * @return array<string,mixed>
      */
-    public function buildReaderStatePayload(Reader $reader, ?int $knownLockPower = null): array
+    public function buildLockStatePayload(Lock $lock): array
     {
-        $lockPower = $knownLockPower ?? $this->resolveLockPower($reader);
-        $autolock = $this->autolockSettingsResolver->resolveForReader($reader);
+        $state = $this->lockStateStore->forLock($lock);
+        $autolock = $this->autolockSettingsResolver->resolveForAreaAndLock($lock->area, $lock);
 
         return [
-            'lock_power' => $lockPower,
-            'autolock_enabled' => (bool) ($autolock['enabled'] ?? false) ? 1 : 0,
-            'autolock_duration' => max(0, (int) ($autolock['duration'] ?? 0)),
-            'ts' => now()->toIso8601String(),
+            'schema_version' => 1,
+            'device' => $this->devicePayload($lock, 'lock'),
+            'available' => true,
+            'updated_at' => $state['updated_at'] ?? $lock->updated_at?->toIso8601String(),
+            'state' => $state['state'],
+            'confidence' => $state['confidence'],
+            'state_source' => $state['source'],
+            'autolock' => [
+                'enabled' => (bool) $autolock['enabled'],
+                'duration_seconds' => min(3600, max(0, (int) $autolock['duration'])),
+                'source' => $autolock['source'],
+            ],
+            'bindings' => $this->bindingPayloads($lock),
         ];
     }
 
-    public function publishReaderState(Reader $reader, ?int $knownLockPower = null): void
+    public function publishLockState(Lock $lock): void
     {
-        $payload = $this->buildReaderStatePayload($reader, $knownLockPower);
+        $payload = $this->buildLockStatePayload($lock);
+        $this->publishDeviceState(AccessControlMqttTopic::lockStateTopic($lock), $payload, $lock);
+    }
 
-        $topic = AccessControlMqttTopic::stateTopic($reader);
-        $connectionName = $this->resolvePublisherConnection();
+    public function publishLocksForReader(Reader $reader): void
+    {
+        $locks = $reader->targetLocks()->get();
 
-        try {
-            $this->publishPayload($connectionName, $topic, $payload, $reader);
-        } catch (Throwable $e) {
-            Log::warning('Failed to publish reader MQTT state. Retrying with a fresh connection.', [
-                'reader_id' => $reader->id,
-                'reader_identifier' => $reader->identifier,
-                'topic' => $topic,
-                'payload' => $payload,
-                'error' => $e->getMessage(),
-                'exception' => $e,
-            ]);
-
-            try {
-                $this->publishPayload($connectionName, $topic, $payload, $reader);
-
-                Log::info('mqtt.state.publish_retry_succeeded', [
-                    'reader_id' => $reader->id,
-                    'reader_identifier' => $reader->identifier,
-                    'topic' => $topic,
-                ]);
-            } catch (Throwable $retryError) {
-                Log::warning('Failed to publish reader MQTT state after retry.', [
-                    'reader_id' => $reader->id,
-                    'reader_identifier' => $reader->identifier,
-                    'topic' => $topic,
-                    'payload' => $payload,
-                    'error' => $retryError->getMessage(),
-                    'exception' => $retryError,
-                ]);
-            }
+        if ($locks->isEmpty() && $reader->area?->primaryLock() instanceof Lock) {
+            $locks = collect([$reader->area->primaryLock()]);
         }
+
+        $locks->each(fn (Lock $lock) => $this->publishLockState($lock));
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    public function buildSensorStatePayload(Sensor $sensor): array
+    {
+        return [
+            'schema_version' => 1,
+            'device' => $this->devicePayload($sensor, 'sensor'),
+            'available' => true,
+            'updated_at' => $sensor->updated_at?->toIso8601String(),
+            'state' => (bool) $sensor->state,
+            'device_class' => $this->sensorDeviceClass($sensor),
+            'bindings' => $this->bindingPayloads($sensor),
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    public function buildLightStatePayload(Light $light): array
+    {
+        $payload = [
+            'schema_version' => 1,
+            'device' => $this->devicePayload($light, 'light'),
+            'available' => true,
+            'updated_at' => $light->updated_at?->toIso8601String(),
+            'state' => (bool) $light->state,
+            'capabilities' => [
+                'brightness' => $light->supportsBrightness(),
+                'color' => $light->supportsColor(),
+            ],
+            'bindings' => $this->bindingPayloads($light),
+        ];
+
+        if ($light->supportsBrightness()) {
+            $payload['brightness'] = min(100, max(0, (int) ($light->brightness ?? 100)));
+        }
+
+        if ($light->supportsColor()) {
+            $payload['color'] = $light->color ?? '#ffffff';
+        }
+
+        return $payload;
+    }
+
+    public function publishLightState(Light $light): void
+    {
+        $payload = $this->buildLightStatePayload($light);
+        $this->publishDeviceState(AccessControlMqttTopic::lightStateTopic($light), $payload, $light);
+    }
+
+    public function publishAllDeviceStates(): void
+    {
+        Lock::query()->with('area')->orderBy('id')->each(fn (Lock $lock) => $this->publishLockState($lock));
+        Sensor::query()->with('area')->orderBy('id')->each(fn (Sensor $sensor) => $this->publishSensorState($sensor, ['force' => true]));
+        Light::query()->with('area')->orderBy('id')->each(fn (Light $light) => $this->publishLightState($light));
     }
 
     /**
@@ -91,15 +138,9 @@ class AccessControlMqttPublisher
             return;
         }
 
-        $payload = [
-            'state' => $state,
-            'ts' => now()->toIso8601String(),
-            'sensor_id' => $sensor->id,
-            'sensor_identifier' => $sensor->identifier,
-            'area_id' => $sensor->area_id,
-        ];
+        $payload = $this->buildSensorStatePayload($sensor);
 
-        $topic = $this->sensorStateTopic($sensor);
+        $topic = AccessControlMqttTopic::sensorStateTopic($sensor);
         $connectionName = $this->resolvePublisherConnection();
 
         try {
@@ -174,19 +215,16 @@ class AccessControlMqttPublisher
     /**
      * @param  array<string,mixed>  $payload
      */
-    public function publishTransientEvent(Reader $reader, array $payload): void
+    private function publishDeviceState(string $topic, array $payload, Lock|Sensor|Light $device): void
     {
-        $payload['ts'] = now()->toIso8601String();
-
-        $topic = AccessControlMqttTopic::eventsTopic($reader);
         $connectionName = $this->resolvePublisherConnection();
 
         try {
-            $this->publishPayload($connectionName, $topic, $payload, $reader, false);
+            $this->publishPayload($connectionName, $topic, $payload, $device);
         } catch (Throwable $e) {
-            Log::warning('mqtt.event.publish_failed', [
-                'reader_id' => $reader->id,
-                'reader_identifier' => $reader->identifier,
+            Log::warning('Failed to publish MQTT device state.', [
+                'device_type' => class_basename($device),
+                'device_id' => $device->id,
                 'topic' => $topic,
                 'payload' => $payload,
                 'error' => $e->getMessage(),
@@ -195,56 +233,9 @@ class AccessControlMqttPublisher
     }
 
     /**
-     * @return array{topic:string,retained:bool,payload:array<string,mixed>|null}|null
-     */
-    public function readRetainedReaderState(Reader $reader, int $timeoutSeconds = 2): ?array
-    {
-        $connectionName = $this->resolvePublisherConnection();
-        $topic = AccessControlMqttTopic::stateTopic($reader);
-        $config = $this->resolveConnectionConfig($connectionName);
-        $settings = (array) Arr::get($config, 'connection_settings', []);
-        $settings['socket_timeout'] = min(max(1, $timeoutSeconds), 2);
-        $config['connection_settings'] = $settings;
-
-        $mqtt = $this->makeClient($config);
-        $result = null;
-        $loopStartedAt = microtime(true);
-
-        try {
-            $mqtt->subscribe($topic, function (string $receivedTopic, string $message, bool $retained) use (&$result, $mqtt): void {
-                $decoded = json_decode($message, true);
-                $result = [
-                    'topic' => $receivedTopic,
-                    'retained' => $retained,
-                    'payload' => is_array($decoded) ? $decoded : null,
-                ];
-
-                $mqtt->interrupt();
-            }, 0);
-
-            while ($result === null && (microtime(true) - $loopStartedAt) < $timeoutSeconds) {
-                $mqtt->loopOnce($loopStartedAt, false);
-            }
-        } finally {
-            if ($mqtt->isConnected()) {
-                try {
-                    $mqtt->disconnect();
-                } catch (Throwable $disconnectError) {
-                    Log::debug('MQTT retained state probe disconnect failed.', [
-                        'connection' => $connectionName ?: 'default',
-                        'error' => $disconnectError->getMessage(),
-                    ]);
-                }
-            }
-        }
-
-        return $result;
-    }
-
-    /**
      * @param  array<string,mixed>  $payload
      */
-    private function publishPayload(?string $connectionName, string $topic, array $payload, Reader|Sensor $device, bool $retain = true): void
+    private function publishPayload(?string $connectionName, string $topic, array $payload, Lock|Sensor|Light $device): void
     {
         $config = $this->resolveConnectionConfig($connectionName);
         $mqtt = $this->makeClient($config);
@@ -271,15 +262,16 @@ class AccessControlMqttPublisher
             'connection' => $connectionName ?: 'default',
         ];
 
-        if ($device instanceof Reader) {
-            $context['reader_id'] = $device->id;
-            $context['reader_identifier'] = $device->identifier;
-        } else {
+        if ($device instanceof Sensor) {
             $context['sensor_id'] = $device->id;
             $context['sensor_identifier'] = $device->identifier;
+        } else {
+            $context['device_id'] = $device->id;
+            $context['device_identifier'] = $device->identifier;
+            $context['device_type'] = $device instanceof Lock ? 'lock' : 'light';
         }
 
-        Log::info($retain ? 'mqtt.state.published' : 'mqtt.event.published', $context);
+        Log::info('mqtt.state.published', $context);
     }
 
     /**
@@ -372,32 +364,56 @@ class AccessControlMqttPublisher
             ->setDelayBetweenReconnectAttempts((int) Arr::get($config, 'auto_reconnect.delay_between_reconnect_attempts', 0));
     }
 
-    private function resolveLockPower(Reader $reader): ?int
+    /**
+     * @return array<string,mixed>
+     */
+    private function devicePayload(Lock|Sensor|Light $device, string $type): array
     {
-        try {
-            $locked = app(AccessOutputOrchestrator::class)->readLockState($reader);
-
-            return $locked === null ? null : ($locked ? 1 : 0);
-        } catch (Throwable $e) {
-            Log::warning('Failed to read lock power while publishing MQTT state.', [
-                'reader_id' => $reader->id,
-                'reader_identifier' => $reader->identifier,
-                'error' => $e->getMessage(),
-            ]);
-
-            return null;
-        }
+        return [
+            'id' => (int) $device->id,
+            'type' => $type,
+            'identifier' => (string) $device->identifier,
+            'name' => (string) $device->name,
+            'area_id' => (int) $device->area_id,
+        ];
     }
 
-    private function sensorStateTopic(Sensor $sensor): string
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function bindingPayloads(Lock|Sensor|Light $device): array
     {
-        $area = $sensor->area;
+        return $device->adapterBindings()
+            ->with('source')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (AdapterBinding $binding): array => [
+                'id' => (int) $binding->id,
+                'source_id' => (int) $binding->source_id,
+                'source_type' => $binding->source?->type,
+                'adapter_type' => (string) $binding->adapter_type,
+                'channel' => (string) $binding->channel,
+                'action_key' => $binding->actionKeyName(),
+                'direction' => (string) $binding->direction,
+                'enabled' => (bool) $binding->enabled,
+                'signal_reversed' => (bool) $binding->signal_reversed,
+            ])
+            ->values()
+            ->all();
+    }
 
-        if (! $area instanceof Area) {
-            throw new \RuntimeException('Sensor must be assigned to an area for MQTT topic generation.');
-        }
+    private function sensorDeviceClass(Sensor $sensor): ?string
+    {
+        $name = strtolower((string) $sensor->name);
 
-        return AccessControlMqttTopic::areaBaseTopic($area).'/sensor/'.$sensor->identifier;
+        return match (true) {
+            str_contains($name, 'door') => 'door',
+            str_contains($name, 'window') => 'window',
+            str_contains($name, 'motion') => 'motion',
+            str_contains($name, 'smoke') => 'smoke',
+            str_contains($name, 'occupancy') => 'occupancy',
+            default => null,
+        };
     }
 
     private function resolvePublisherConnection(): ?string

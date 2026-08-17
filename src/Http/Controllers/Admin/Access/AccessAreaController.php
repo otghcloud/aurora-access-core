@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use OTGH\AccessControl\Core\Http\Controllers\Controller;
 use OTGH\AccessControl\Core\Jobs\ProcessReaderEvent;
-use OTGH\AccessControl\Core\Jobs\PublishReaderState;
+use OTGH\AccessControl\Core\Jobs\PublishLocksForReader;
 use OTGH\AccessControl\Core\Models\Access\Area;
 use OTGH\AccessControl\Core\Models\Access\AreaPermission;
 use OTGH\AccessControl\Core\Models\Access\Event;
@@ -104,7 +104,7 @@ class AccessAreaController extends Controller
 
         $readers = $area->readers()->orderBy('id')->get();
         foreach ($readers as $reader) {
-            PublishReaderState::dispatch($reader->fresh());
+            PublishLocksForReader::dispatch($reader->fresh());
         }
 
         Event::create([
@@ -524,7 +524,7 @@ class AccessAreaController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        PublishReaderState::dispatch($reader->fresh(), $targetPower);
+        PublishLocksForReader::dispatch($reader->fresh());
 
         return redirect()->route('admin.access-areas.index')->with('status', $statusMessage);
     }

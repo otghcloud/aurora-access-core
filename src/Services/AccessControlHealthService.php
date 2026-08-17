@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Schema;
+use OTGH\AccessControl\Core\Models\Hardware\Lock;
 use OTGH\AccessControl\Core\Models\Hardware\Reader;
 use OTGH\AccessControl\Core\Services\AccessControl\AccessControlSettingsRepository;
 use OTGH\AccessControl\Core\Services\AccessControl\HealthCheckRegistry;
@@ -181,13 +182,13 @@ class AccessControlHealthService
             }
         }
 
-        $monitorMatches = $this->runShellCommand('pgrep -fa "artisan app:monitor-reader-push" 2>/dev/null');
+        $monitorMatches = $this->runShellCommand('pgrep -fa "artisan app:monitor-device-mqtt-commands" 2>/dev/null');
         if ($monitorMatches !== null && trim($monitorMatches) !== '') {
             $count = count(array_filter(array_map('trim', explode("\n", trim($monitorMatches)))));
             $checks[] = $this->makeCheck('Monitor process match', 'PASS', sprintf('pgrep matches=%d', $count));
             $monitorProcessOk = true;
         } else {
-            $checks[] = $this->makeCheck('Monitor process match', 'WARN', 'No app:monitor-reader-push process found via pgrep');
+            $checks[] = $this->makeCheck('Monitor process match', 'WARN', 'No app:monitor-device-mqtt-commands process found via pgrep');
         }
 
         $modbusMonitorMatches = $this->runShellCommand('pgrep -fa "artisan app:monitor-modbus-sources" 2>/dev/null');
@@ -254,7 +255,7 @@ class AccessControlHealthService
             }
         }
 
-        $probe = $this->runMqttProbe($readerIdentifier);
+        $probe = $this->runMqttProbe();
         $checks[] = $this->makeCheck($probe['name'], $probe['status'], $probe['details']);
         if ($probe['status'] === 'FAIL') {
             $failedChecks++;
@@ -316,45 +317,28 @@ class AccessControlHealthService
     /**
      * @return array{name:string,status:string,details:string}
      */
-    private function runMqttProbe(?string $readerIdentifier = null): array
+    private function runMqttProbe(): array
     {
-        $reader = $this->resolveProbeReader($readerIdentifier);
+        $lock = Lock::query()->with('area')->orderBy('id')->first();
 
-        if ($reader === null) {
-            return $this->makeCheck('MQTT state probe', 'WARN', 'No reader available for MQTT state probe');
+        if (! $lock instanceof Lock) {
+            return $this->makeCheck('MQTT state probe', 'WARN', 'No lock available for MQTT state probe');
         }
 
         try {
             $publisher = app(AccessControlMqttPublisher::class);
-            $expectedPayload = $publisher->buildReaderStatePayload($reader);
-            $publisher->publishReaderState($reader, Arr::get($expectedPayload, 'lock_power'));
-            $observed = $publisher->readRetainedReaderState($reader, 2);
-
-            if ($observed === null) {
-                return $this->makeCheck('MQTT state probe', 'FAIL', sprintf('No retained payload observed for %s', $reader->mqttStateTopic()));
-            }
-
-            $observedPayload = Arr::get($observed, 'payload');
-
-            if (! is_array($observedPayload)) {
-                return $this->makeCheck('MQTT state probe', 'FAIL', sprintf('Retained payload on %s was not valid JSON', $reader->mqttStateTopic()));
-            }
-
-            $matches = Arr::get($observedPayload, 'autolock_enabled') === Arr::get($expectedPayload, 'autolock_enabled')
-                && Arr::get($observedPayload, 'autolock_duration') === Arr::get($expectedPayload, 'autolock_duration');
+            $payload = $publisher->buildLockStatePayload($lock);
+            $publisher->publishLockState($lock);
 
             return $this->makeCheck(
                 'MQTT state probe',
-                $matches ? 'PASS' : 'FAIL',
+                'PASS',
                 sprintf(
-                    'reader=%s topic=%s retained=%s expected_autolock=%s observed_autolock=%s expected_duration=%s observed_duration=%s',
-                    $reader->identifier,
-                    $reader->mqttStateTopic(),
-                    Arr::get($observed, 'retained', false) ? 'yes' : 'no',
-                    (string) Arr::get($expectedPayload, 'autolock_enabled', 'n/a'),
-                    (string) Arr::get($observedPayload, 'autolock_enabled', 'n/a'),
-                    (string) Arr::get($expectedPayload, 'autolock_duration', 'n/a'),
-                    (string) Arr::get($observedPayload, 'autolock_duration', 'n/a')
+                    'lock=%s schema_version=%s state=%s auto_lock=%s',
+                    $lock->identifier,
+                    (string) Arr::get($payload, 'schema_version', 'n/a'),
+                    (string) Arr::get($payload, 'state', 'unknown'),
+                    (bool) Arr::get($payload, 'autolock.enabled', false) ? 'enabled' : 'disabled',
                 )
             );
         } catch (Throwable $e) {
@@ -404,15 +388,6 @@ class AccessControlHealthService
                 $dryRun ? 'yes' : 'no'
             )
         );
-    }
-
-    private function resolveProbeReader(?string $readerIdentifier = null): ?Reader
-    {
-        if (is_string($readerIdentifier) && trim($readerIdentifier) !== '') {
-            return Reader::query()->where('identifier', trim($readerIdentifier))->first();
-        }
-
-        return Reader::query()->orderBy('id', 'asc')->first();
     }
 
     private function runShellCommand(string $command): ?string

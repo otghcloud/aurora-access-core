@@ -16,6 +16,7 @@ use OTGH\AccessControl\Core\Models\Hardware\Reader;
 use OTGH\AccessControl\Core\Models\Hardware\ReaderLockBinding;
 use OTGH\AccessControl\Core\Models\Hardware\Sensor;
 use OTGH\AccessControl\Core\Services\AccessControl\AutolockSettingsResolver;
+use OTGH\AccessControl\Core\Services\AccessControlMqttPublisher;
 use OTGH\AccessControl\Core\Services\HomeAssistant\HAIntegrationService;
 
 class HAWebhookController
@@ -25,6 +26,7 @@ class HAWebhookController
     public function __construct(
         HAIntegrationService $haIntegration,
         private readonly AutolockSettingsResolver $autolockSettingsResolver,
+        private readonly AccessControlMqttPublisher $mqttPublisher,
     ) {
         $this->haIntegration = $haIntegration;
     }
@@ -169,6 +171,8 @@ class HAWebhookController
                 'ip_address' => $request->ip(),
             ]);
         });
+
+        $this->mqttPublisher->publishLockState($lock->fresh() ?? $lock);
 
         return response()->json([
             'success' => true,

@@ -68,10 +68,8 @@
                         </div>
                         <div class="col-md-6">
                             <h3 class="h6">MQTT</h3>
-                            <div><strong>Area Slug:</strong> <code>{{ $area?->mqttAreaSlug() ?? '-' }}</code></div>
-                            <div><strong>Command Topic:</strong> <code>{{ $area?->mqttCommandTopic() ?? '-' }}</code></div>
-                            <div><strong>State Topic:</strong> <code>{{ $area?->mqttStateTopic() ?? '-' }}</code></div>
-                            <div><strong>Events Topic:</strong> <code>{{ $area?->mqttEventsTopic() ?? '-' }}</code></div>
+                            <div><strong>Command Topic:</strong> <code>{{ \OTGH\AccessControl\Core\Support\AccessControlMqttTopic::lockCommandTopic($accessLock) }}</code></div>
+                            <div><strong>State Topic:</strong> <code>{{ \OTGH\AccessControl\Core\Support\AccessControlMqttTopic::lockStateTopic($accessLock) }}</code></div>
                         </div>
                     </div>
                 </div>

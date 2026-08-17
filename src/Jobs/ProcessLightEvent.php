@@ -5,6 +5,7 @@ namespace OTGH\AccessControl\Core\Jobs;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use OTGH\AccessControl\Core\Models\Hardware\Light;
+use OTGH\AccessControl\Core\Services\AccessControlMqttPublisher;
 
 class ProcessLightEvent implements ShouldQueue
 {
@@ -24,7 +25,7 @@ class ProcessLightEvent implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(): void
+    public function handle(AccessControlMqttPublisher $mqttPublisher): void
     {
         $light = Light::find($this->lightId);
 
@@ -45,6 +46,8 @@ class ProcessLightEvent implements ShouldQueue
                 'color' => $this->handleColor($light),
                 default => \Log::warning('Unknown light action: '.$this->action),
             };
+
+            $mqttPublisher->publishLightState($light->fresh() ?? $light);
         } catch (\Exception $e) {
             \Log::error('ProcessLightEvent error: '.$e->getMessage(), [
                 'light_id' => $this->lightId,

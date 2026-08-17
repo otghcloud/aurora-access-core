@@ -10,7 +10,6 @@ use OTGH\AccessControl\Core\Models\Hardware\Lock;
 use OTGH\AccessControl\Core\Models\Hardware\PhysicalSwitch;
 use OTGH\AccessControl\Core\Models\Hardware\Reader;
 use OTGH\AccessControl\Core\Models\Hardware\Sensor;
-use OTGH\AccessControl\Core\Support\AccessControlMqttTopic;
 
 class Area extends BaseModel
 {
@@ -100,36 +99,5 @@ class Area extends BaseModel
                 'metadata' => ['system' => ['purpose' => 'reader_fallback_assignment']],
             ]
         );
-    }
-
-    public function mqttAreaSlug(): string
-    {
-        return AccessControlMqttTopic::areaSlug($this);
-    }
-
-    public function mqttBaseTopic(): string
-    {
-        return AccessControlMqttTopic::areaBaseTopic($this);
-    }
-
-    public function mqttCommandTopic(): string
-    {
-        $suffix = AccessControlMqttTopic::commandSuffix();
-
-        return $this->mqttBaseTopic().'/'.$suffix;
-    }
-
-    public function mqttStateTopic(): string
-    {
-        $suffix = AccessControlMqttTopic::stateSuffix();
-
-        return $this->mqttBaseTopic().'/'.$suffix;
-    }
-
-    public function mqttEventsTopic(): string
-    {
-        $suffix = AccessControlMqttTopic::eventsSuffix();
-
-        return $this->mqttBaseTopic().'/'.$suffix;
     }
 }

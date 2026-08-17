@@ -11,10 +11,9 @@ use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use OTGH\AccessControl\Core\Console\Commands\AccessControlHealthCheck;
 use OTGH\AccessControl\Core\Console\Commands\CreateInitialAdminUser;
-use OTGH\AccessControl\Core\Console\Commands\MonitorReaderPushRequests;
+use OTGH\AccessControl\Core\Console\Commands\MonitorDeviceMqttCommands;
 use OTGH\AccessControl\Core\Console\Commands\RebuildAccessControlSupervisorConfig;
 use OTGH\AccessControl\Core\Console\Commands\ReconcileReaderLockState;
-use OTGH\AccessControl\Core\Console\Commands\SyncReaderMqttState;
 use OTGH\AccessControl\Core\Console\Commands\TestReadEvent;
 use OTGH\AccessControl\Core\Livewire\Admin\AccessReadersTable;
 use OTGH\AccessControl\Core\Livewire\Admin\DashboardLockCards;
@@ -86,50 +85,6 @@ class AccessCoreServiceProvider extends ServiceProvider
                 sectionLabel: 'MQTT',
                 package: null,
                 default: 'access_control',
-            );
-
-            $registry->registerField(
-                key: 'mqtt_command_suffix',
-                label: 'MQTT Command Suffix',
-                type: 'string',
-                description: 'MQTT suffix for command topics.',
-                section: 'mqtt',
-                sectionLabel: 'MQTT',
-                package: null,
-                default: 'cmd',
-            );
-
-            $registry->registerField(
-                key: 'mqtt_state_suffix',
-                label: 'MQTT State Suffix',
-                type: 'string',
-                description: 'MQTT suffix for state topics.',
-                section: 'mqtt',
-                sectionLabel: 'MQTT',
-                package: null,
-                default: 'state',
-            );
-
-            $registry->registerField(
-                key: 'mqtt_events_suffix',
-                label: 'MQTT Events Suffix',
-                type: 'string',
-                description: 'MQTT suffix for events topics.',
-                section: 'mqtt',
-                sectionLabel: 'MQTT',
-                package: null,
-                default: 'events',
-            );
-
-            $registry->registerField(
-                key: 'push_dedupe_seconds',
-                label: 'Push Dedupe Window (Seconds)',
-                type: 'float',
-                description: 'Duplicate suppression window for push events.',
-                section: 'mqtt',
-                sectionLabel: 'MQTT',
-                package: null,
-                default: 2.5,
             );
 
             $registry->registerField(
@@ -242,10 +197,9 @@ class AccessCoreServiceProvider extends ServiceProvider
             $this->commands([
                 AccessControlHealthCheck::class,
                 CreateInitialAdminUser::class,
-                MonitorReaderPushRequests::class,
+                MonitorDeviceMqttCommands::class,
                 RebuildAccessControlSupervisorConfig::class,
                 ReconcileReaderLockState::class,
-                SyncReaderMqttState::class,
                 TestReadEvent::class,
             ]);
 

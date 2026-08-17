@@ -29,8 +29,6 @@ class ReaderControlController extends Controller
                     'identifier' => $reader->identifier,
                     'autolock_enabled' => (bool) (app(AutolockSettingsResolver::class)->resolveForReader($reader)['enabled'] ?? false),
                     'autolock_duration' => (int) (app(AutolockSettingsResolver::class)->resolveForReader($reader)['duration'] ?? 0),
-                    'mqtt_command_topic' => $reader->mqttCommandTopic(),
-                    'mqtt_state_topic' => $reader->mqttStateTopic(),
                     'lock_output' => [
                         'adapter_type' => $lockBinding?->adapterType,
                         'channel' => $lockBinding?->channel,
@@ -182,7 +180,7 @@ class ReaderControlController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        app(AccessControlMqttPublisher::class)->publishReaderState($accessReader);
+        app(AccessControlMqttPublisher::class)->publishLocksForReader($accessReader);
 
         return response()->json([
             'message' => 'Autolock settings updated.',

@@ -10,7 +10,7 @@ use OTGH\AccessControl\Core\Models\Hardware\Reader;
 use OTGH\AccessControl\Core\Services\AccessControlMqttPublisher;
 use Throwable;
 
-class PublishReaderState implements ShouldQueue
+class PublishLocksForReader implements ShouldQueue
 {
     use Queueable;
     use SerializesModels;
@@ -20,22 +20,18 @@ class PublishReaderState implements ShouldQueue
     /** @var array<int,int> */
     public array $backoff = [2, 5, 15];
 
-    public function __construct(
-        public Reader $accessReader,
-        public ?int $knownLockPower = null,
-    ) {}
+    public function __construct(public Reader $reader) {}
 
-    public function handle(): void
+    public function handle(AccessControlMqttPublisher $mqttPublisher): void
     {
-        app(AccessControlMqttPublisher::class)->publishReaderState($this->accessReader->fresh(), $this->knownLockPower);
+        $mqttPublisher->publishLocksForReader($this->reader->fresh() ?? $this->reader);
     }
 
     public function failed(Throwable $exception): void
     {
-        Log::error('publish_reader_state.failed', [
-            'reader_id' => $this->accessReader->id,
-            'reader_identifier' => $this->accessReader->identifier,
-            'known_lock_power' => $this->knownLockPower,
+        Log::error('publish_locks_for_reader.failed', [
+            'reader_id' => $this->reader->id,
+            'reader_identifier' => $this->reader->identifier,
             'error' => $exception->getMessage(),
             'exception' => $exception,
         ]);

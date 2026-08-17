@@ -5,7 +5,7 @@ namespace OTGH\AccessControl\Core\Livewire\Admin;
 use Illuminate\Support\Collection;
 use Livewire\Component;
 use OTGH\AccessControl\Core\Jobs\ProcessReaderEvent;
-use OTGH\AccessControl\Core\Jobs\PublishReaderState;
+use OTGH\AccessControl\Core\Jobs\PublishLocksForReader;
 use OTGH\AccessControl\Core\Models\Access\Event;
 use OTGH\AccessControl\Core\Models\Hardware\Reader;
 use OTGH\AccessControl\Core\Services\AccessControl\AutolockSettingsResolver;
@@ -109,7 +109,7 @@ class DashboardLockCards extends Component
         Reader::query()
             ->where('area_id', $area->id)
             ->get()
-            ->each(fn (Reader $reader) => PublishReaderState::dispatch($reader->fresh()));
+            ->each(fn (Reader $reader) => PublishLocksForReader::dispatch($reader->fresh()));
 
         $this->statusMessage = $updated ? 'Auto-lock enabled.' : 'Auto-lock disabled.';
     }

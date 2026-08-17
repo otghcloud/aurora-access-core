@@ -111,7 +111,7 @@ class ReconcileReaderLockState extends Command
                 }
 
                 $expectedLockStateStore->storeExpectedLockPower($freshReader, $expected, 'lock_state_reconciled');
-                $mqttPublisher->publishReaderState($freshReader->fresh() ?? $freshReader, $expected);
+                $mqttPublisher->publishLocksForReader($freshReader->fresh() ?? $freshReader);
 
                 Event::create([
                     'access_card_id' => null,

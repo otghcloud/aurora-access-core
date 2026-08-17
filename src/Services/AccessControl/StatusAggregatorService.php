@@ -75,8 +75,6 @@ class StatusAggregatorService
             'identifier' => $reader->identifier,
             'area_id' => (string) $reader->area_id,
             'state' => 'online', // Phase 2.x: Add actual reader state via MQTT
-            'mqtt_state_topic' => $reader->mqttStateTopic(),
-            'mqtt_command_topic' => $reader->mqttCommandTopic(),
             'bound_locks' => $reader->lockBindings()
                 ->where('enabled', true)
                 ->pluck('lock_id')
