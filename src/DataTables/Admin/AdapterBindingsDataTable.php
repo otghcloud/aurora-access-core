@@ -14,7 +14,10 @@ use Yajra\DataTables\Services\DataTable;
 
 class AdapterBindingsDataTable extends DataTable
 {
-    public function __construct(private readonly Request $request) {}
+    public function __construct(private readonly Request $httpRequest)
+    {
+        parent::__construct();
+    }
 
     /** @param  QueryBuilder<AdapterBinding>  $query */
     public function dataTable(QueryBuilder $query): EloquentDataTable
@@ -49,14 +52,14 @@ class AdapterBindingsDataTable extends DataTable
     public function query(AdapterBinding $model): QueryBuilder
     {
         return $model->newQuery()->with('source')
-            ->when($this->request->filled('direction'), fn (QueryBuilder $query) => $query->where('direction', $this->request->string('direction')->toString()))
-            ->when($this->request->filled('adapter_type'), fn (QueryBuilder $query) => $query->where('adapter_type', $this->request->string('adapter_type')->toString()))
-            ->when($this->request->filled('target_type'), fn (QueryBuilder $query) => $query->where('target_type', $this->request->string('target_type')->toString()))
-            ->when($this->request->filled('target_id'), fn (QueryBuilder $query) => $query->where('target_id', (int) $this->request->input('target_id')))
-            ->when($this->request->filled('source_id'), fn (QueryBuilder $query) => $query->where('source_id', (int) $this->request->input('source_id')))
-            ->when($this->request->filled('enabled'), fn (QueryBuilder $query) => $query->where('enabled', $this->request->boolean('enabled')))
-            ->when($this->request->filled('action_key'), function (QueryBuilder $query): void {
-                $action = AccessBindingActionKey::fromStored($this->request->input('action_key'));
+            ->when($this->httpRequest->filled('direction'), fn (QueryBuilder $query) => $query->where('direction', $this->httpRequest->string('direction')->toString()))
+            ->when($this->httpRequest->filled('adapter_type'), fn (QueryBuilder $query) => $query->where('adapter_type', $this->httpRequest->string('adapter_type')->toString()))
+            ->when($this->httpRequest->filled('target_type'), fn (QueryBuilder $query) => $query->where('target_type', $this->httpRequest->string('target_type')->toString()))
+            ->when($this->httpRequest->filled('target_id'), fn (QueryBuilder $query) => $query->where('target_id', (int) $this->httpRequest->input('target_id')))
+            ->when($this->httpRequest->filled('source_id'), fn (QueryBuilder $query) => $query->where('source_id', (int) $this->httpRequest->input('source_id')))
+            ->when($this->httpRequest->filled('enabled'), fn (QueryBuilder $query) => $query->where('enabled', $this->httpRequest->boolean('enabled')))
+            ->when($this->httpRequest->filled('action_key'), function (QueryBuilder $query): void {
+                $action = AccessBindingActionKey::fromStored($this->httpRequest->input('action_key'));
                 $action instanceof AccessBindingActionKey
                     ? $query->whereIn('action_key', $action->queryCandidates())
                     : $query->whereRaw('1 = 0');

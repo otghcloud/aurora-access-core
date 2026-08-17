@@ -13,7 +13,10 @@ use Yajra\DataTables\Services\DataTable;
 
 class AreaPermissionsDataTable extends DataTable
 {
-    public function __construct(private readonly Request $request) {}
+    public function __construct(private readonly Request $httpRequest)
+    {
+        parent::__construct();
+    }
 
     /** @param  QueryBuilder<AreaPermission>  $query */
     public function dataTable(QueryBuilder $query): EloquentDataTable
@@ -48,9 +51,9 @@ class AreaPermissionsDataTable extends DataTable
     public function query(AreaPermission $model): QueryBuilder
     {
         return $model->newQuery()->with(['accessUser', 'area'])
-            ->when($this->request->filled('individual_id'), fn (QueryBuilder $query) => $query->where('individual_id', (int) $this->request->input('individual_id')))
-            ->when($this->request->filled('area_id'), fn (QueryBuilder $query) => $query->where('area_id', (int) $this->request->input('area_id')))
-            ->when($this->request->filled('permission'), fn (QueryBuilder $query) => $query->where('permission', $this->request->string('permission')->toString()));
+            ->when($this->httpRequest->filled('individual_id'), fn (QueryBuilder $query) => $query->where('individual_id', (int) $this->httpRequest->input('individual_id')))
+            ->when($this->httpRequest->filled('area_id'), fn (QueryBuilder $query) => $query->where('area_id', (int) $this->httpRequest->input('area_id')))
+            ->when($this->httpRequest->filled('permission'), fn (QueryBuilder $query) => $query->where('permission', $this->httpRequest->string('permission')->toString()));
     }
 
     public function html(): HtmlBuilder
