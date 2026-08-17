@@ -47,11 +47,6 @@ window.$ = $;
 window.jQuery = $;
 
 import 'jquery-migrate';
-import DataTable from 'datatables.net-bs5';
-import 'datatables.net-responsive-bs5';
-import 'datatables.net-buttons-bs5';
-import 'datatables.net-select-bs5';
-import 'laravel-datatables-vite/js/dataTables.buttons.js';
-import 'laravel-datatables-vite/js/dataTables.renderers.js';
+import initDataTables from './admin/modules/datatables';
 
-window.DataTable = DataTable;
+initDataTables();

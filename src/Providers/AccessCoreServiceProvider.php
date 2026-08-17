@@ -40,6 +40,7 @@ class AccessCoreServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../../config/mqtt-client.php', 'mqtt-client');
+        $this->mergeConfigFrom(__DIR__.'/../../config/datatables.php', 'datatables');
 
         $this->app->singleton(AccessControlCapabilityRegistry::class, function (): AccessControlCapabilityRegistry {
             $registry = new AccessControlCapabilityRegistry;
@@ -205,6 +206,10 @@ class AccessCoreServiceProvider extends ServiceProvider
 
             $this->publishes([
                 __DIR__.'/../../config/mqtt-client.php' => config_path('mqtt-client.php'),
+            ], 'aurora-access-core-config');
+
+            $this->publishes([
+                __DIR__.'/../../config/datatables.php' => config_path('datatables.php'),
             ], 'aurora-access-core-config');
 
             $this->publishes([

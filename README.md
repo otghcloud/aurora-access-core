@@ -102,6 +102,8 @@ php artisan app:create-initial-admin-user --name="Admin User" --email="admin@exa
   - `mqtt-client.php` defaults
 - Views:
   - Package Blade templates used by the admin/auth UI
+- Frontend assets:
+  - Prebuilt package CSS and JavaScript published to `public/vendor/aurora-access-core/build`
 
 ## Publishing assets
 
@@ -109,4 +111,8 @@ php artisan app:create-initial-admin-user --name="Admin User" --email="admin@exa
 php artisan vendor:publish --tag=aurora-access-core-config
 php artisan vendor:publish --tag=aurora-access-core-migrations
 php artisan vendor:publish --tag=aurora-access-core-views
+php artisan vendor:publish --tag=aurora-access-core-assets
+php artisan optimize:clear
 ```
+
+Aurora Access Core ships its compiled frontend assets with the Composer package. Consumer applications publish those assets; they do not compile the package source through their own Vite build.
